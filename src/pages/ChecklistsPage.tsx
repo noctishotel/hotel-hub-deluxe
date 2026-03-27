@@ -92,6 +92,9 @@ export default function ChecklistsPage() {
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
   const [editTipo, setEditTipo] = useState("tarea");
+  const [notaExtra, setNotaExtra] = useState("");
+  const [notaExtraId, setNotaExtraId] = useState<string | null>(null);
+  const [savingNota, setSavingNota] = useState(false);
   const today = new Date().toISOString().split("T")[0];
 
   const currentDept = usuario?.departamento ?? "recepcion";
@@ -106,19 +109,27 @@ export default function ChecklistsPage() {
 
   const loadData = async () => {
     try {
-      const [tareasRes, categoriasRes, registrosRes, pospuestasRes, pospuestasAyerRes] = await Promise.all([
+      const [tareasRes, categoriasRes, registrosRes, pospuestasRes, pospuestasAyerRes, notaRes] = await Promise.all([
         supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("registros_checklist").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha", today),
         supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_original", today),
         supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_destino", today),
+        supabase.from("notas_checklist" as any).select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("fecha", today).eq("usuario_id", usuario?.id).maybeSingle(),
       ]);
 
       setTareas(tareasRes.data ?? []);
       setCategorias(categoriasRes.data ?? []);
-      setRegistros(new Set((registrosRes.data ?? []).map((r) => r.tarea_id)));
-      setPospuestas(new Set((pospuestasRes.data ?? []).map((p) => p.tarea_id)));
-      setPospuestasDesdAyer(new Set((pospuestasAyerRes.data ?? []).map((p) => p.tarea_id)));
+      setRegistros(new Set((registrosRes.data ?? []).map((r: any) => r.tarea_id)));
+      setPospuestas(new Set((pospuestasRes.data ?? []).map((p: any) => p.tarea_id)));
+      setPospuestasDesdAyer(new Set((pospuestasAyerRes.data ?? []).map((p: any) => p.tarea_id)));
+      if (notaRes.data) {
+        setNotaExtra((notaRes.data as any).nota ?? "");
+        setNotaExtraId((notaRes.data as any).id);
+      } else {
+        setNotaExtra("");
+        setNotaExtraId(null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -230,7 +241,31 @@ export default function ChecklistsPage() {
     }
   };
 
-  // --- WhatsApp share ---
+  const saveNotaExtra = useCallback(async () => {
+    if (!hotelId || !usuario?.id) return;
+    setSavingNota(true);
+    try {
+      if (notaExtraId) {
+        await supabase.from("notas_checklist" as any).update({ nota: notaExtra } as any).eq("id", notaExtraId);
+      } else {
+        const { data } = await supabase.from("notas_checklist" as any).insert({
+          hotel_id: hotelId,
+          departamento: selectedDept,
+          fecha: today,
+          nota: notaExtra,
+          usuario_id: usuario.id,
+        } as any).select("id").single();
+        if (data) setNotaExtraId((data as any).id);
+      }
+      toast.success("Nota guardada");
+    } catch (err) {
+      toast.error("Error al guardar nota");
+    } finally {
+      setSavingNota(false);
+    }
+  }, [notaExtra, notaExtraId, hotelId, usuario?.id, selectedDept, today]);
+
+
   const generateWhatsAppSummary = () => {
     const deptLabel = DEPARTAMENTOS.find((d) => d.value === selectedDept)?.label ?? selectedDept;
     const dateFormatted = new Date().toLocaleDateString("es-ES", {
@@ -284,6 +319,10 @@ export default function ChecklistsPage() {
     const totalCompletadas = totalTareas.filter((t) => registros.has(t.id)).length;
     text += "─".repeat(30) + "\n";
     text += `TOTAL: ${totalCompletadas}/${totalTareas.length} tareas completadas`;
+
+    if (notaExtra.trim()) {
+      text += `\n\n*TAREAS ADICIONALES*\n${notaExtra.trim()}`;
+    }
 
     return text;
   };
@@ -539,6 +578,32 @@ export default function ChecklistsPage() {
           </div>
         )}
       </div>
+
+      {/* Cuadro de texto libre para tareas adicionales (mantenimiento) */}
+      {selectedDept === "mantenimiento" && (
+        <Card className="bg-card/60 backdrop-blur-sm border-border/50">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm font-medium">Tareas adicionales realizadas</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-3">
+            <Textarea
+              placeholder="Anota aquí las tareas realizadas que no estaban en la lista..."
+              value={notaExtra}
+              onChange={(e) => setNotaExtra(e.target.value)}
+              rows={4}
+              className="text-sm"
+            />
+            <Button
+              size="sm"
+              onClick={saveNotaExtra}
+              disabled={savingNota}
+              className="w-full sm:w-auto"
+            >
+              {savingNota ? "Guardando..." : "Guardar nota"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Dialog para editar tarea */}
       <Dialog open={!!editingTarea} onOpenChange={(open) => !open && setEditingTarea(null)}>
