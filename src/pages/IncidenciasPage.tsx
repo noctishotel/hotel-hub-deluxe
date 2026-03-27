@@ -188,6 +188,10 @@ export default function IncidenciasPage() {
         departamento: editDept as any,
         asignado_a: editAsignado || null,
       }).eq("id", id);
+      await supabase.from("actividad_incidencia").insert({
+        incidencia_id: id, hotel_id: hotelId!,
+        descripcion: `Editado por ${usuario?.nombre ?? "usuario"}`, tipo: "cambio", usuario_id: usuario?.id ?? null,
+      });
       setIncidencias((prev) => prev.map((i) => i.id === id ? {
         ...i, titulo: editTitulo, descripcion: editDescripcion || null,
         prioridad: editPrioridad, departamento: editDept, asignado_a: editAsignado || null,
@@ -367,6 +371,10 @@ export default function IncidenciasPage() {
                         <p className="text-[11px] text-muted-foreground line-clamp-1 ml-4">{inc.descripcion}</p>
                       )}
                       <div className="flex items-center gap-1.5 flex-wrap mt-1 ml-4">
+                        {(() => {
+                          const creador = usuarios.find(u => u.id === inc.creado_por);
+                          return creador ? <span className="text-[10px] text-muted-foreground">Creado por {creador.nombre}</span> : null;
+                        })()}
                         <Badge variant="secondary" className="text-[10px] h-5">
                           {DEPARTAMENTOS.find((d) => d.value === inc.departamento)?.label}
                         </Badge>

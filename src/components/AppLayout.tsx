@@ -39,11 +39,11 @@ const mainNav = [
 ];
 
 const adminNav = [
-  { to: "/equipo", label: "Equipo", icon: Users, adminOnly: true },
-  { to: "/informes", label: "Informes", icon: BarChart3, adminOnly: true },
-  { to: "/admin", label: "Administración", icon: Settings, adminOnly: true },
-  { to: "/hoteles", label: "Hoteles", icon: Hotel, adminOnly: true },
-  { to: "/historial-checklists", label: "Historial", icon: History, adminOnly: true },
+  { to: "/equipo", label: "Equipo", icon: Users, superOnly: true },
+  { to: "/informes", label: "Informes", icon: BarChart3 },
+  { to: "/admin", label: "Administración", icon: Settings },
+  { to: "/hoteles", label: "Hoteles", icon: Hotel, superOnly: true },
+  { to: "/historial-checklists", label: "Historial", icon: History },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -52,6 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
+  const isSuperAdmin = usuario?.rol === "super_admin";
 
   const handleSignOut = async () => {
     await signOut();
@@ -100,7 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {adminNav.map((item) => (
+                    {adminNav.filter((item) => !item.superOnly || isSuperAdmin).map((item) => (
                       <SidebarMenuItem key={item.to}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.to)}
