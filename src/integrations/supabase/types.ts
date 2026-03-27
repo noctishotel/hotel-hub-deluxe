@@ -421,6 +421,54 @@ export type Database = {
           },
         ]
       }
+      notas_checklist: {
+        Row: {
+          created_at: string
+          departamento: Database["public"]["Enums"]["departamento"]
+          fecha: string
+          hotel_id: string
+          id: string
+          nota: string
+          updated_at: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          departamento: Database["public"]["Enums"]["departamento"]
+          fecha?: string
+          hotel_id: string
+          id?: string
+          nota?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          departamento?: Database["public"]["Enums"]["departamento"]
+          fecha?: string
+          hotel_id?: string
+          id?: string
+          nota?: string
+          updated_at?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notas_checklist_hotel_id_fkey"
+            columns: ["hotel_id"]
+            isOneToOne: false
+            referencedRelation: "hoteles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notas_checklist_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recordatorios_incidencia: {
         Row: {
           created_at: string
