@@ -56,13 +56,13 @@ export default function EquipoPage() {
 
   const isAdmin = usuario?.rol === "admin" || isSuperAdmin;
 
-  if (usuario && !isSuperAdmin) {
-    return <Navigate to="/panel" replace />;
-  }
-
   useEffect(() => {
     if (hotelId) loadUsers();
   }, [hotelId]);
+
+  if (usuario && !isSuperAdmin) {
+    return <Navigate to="/panel" replace />;
+  }
 
   const loadUsers = async () => {
     try {
