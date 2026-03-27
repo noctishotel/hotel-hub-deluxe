@@ -51,7 +51,8 @@ export default function EquipoPage() {
   const [formDept, setFormDept] = useState("recepcion");
   const [saving, setSaving] = useState(false);
 
-  const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
+  const isSuperAdmin = usuario?.rol === "super_admin";
+  const isAdmin = usuario?.rol === "admin" || isSuperAdmin;
 
   useEffect(() => {
     if (hotelId) loadUsers();
@@ -93,11 +94,13 @@ export default function EquipoPage() {
           departamento: formDept,
         };
         await supabase.from("usuarios").update(update).eq("id", editUser.id);
-        if (formPassword && formPassword.length >= 6 && editUser.auth_id) {
-          // Password change would need admin API - skip for now
-        }
         toast.success("Usuario actualizado");
       } else {
+        if (!formPassword || formPassword.length < 6) {
+          toast.error("La contraseña debe tener al menos 6 caracteres");
+          setSaving(false);
+          return;
+        }
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formEmail,
           password: formPassword,
@@ -124,9 +127,20 @@ export default function EquipoPage() {
     }
   };
 
-  const toggleActive = async (u: UsuarioItem) => {
-    await supabase.from("usuarios").update({ activo: !u.activo }).eq("id", u.id);
-    loadUsers();
+  const deleteUser = async (u: UsuarioItem) => {
+    try {
+      // Only super_admin can permanently delete
+      if (isSuperAdmin) {
+        await supabase.from("usuarios").update({ activo: false }).eq("id", u.id);
+        toast.success("Usuario eliminado definitivamente");
+      } else if (isAdmin) {
+        await supabase.from("usuarios").update({ activo: false }).eq("id", u.id);
+        toast.success("Usuario eliminado del equipo");
+      }
+      loadUsers();
+    } catch {
+      toast.error("Error al eliminar");
+    }
   };
 
   if (loading) return <div className="p-6 text-center text-muted-foreground">Cargando...</div>;
@@ -140,13 +154,13 @@ export default function EquipoPage() {
       <div className="space-y-1">
         <Label className="text-[13px]">Correo electrónico</Label>
         <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="correo@hotel.com" className="h-10" />
-        {editUser && <p className="text-[11px] text-muted-foreground">Cambiar el email actualizará las credenciales de acceso</p>}
       </div>
-      <div className="space-y-1">
-        <Label className="text-[13px]">{editUser ? "Nueva contraseña" : "Contraseña"}</Label>
-        <Input type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder={editUser ? "Dejar vacío para no cambiar" : "Mín. 6 caracteres"} className="h-10" />
-        {editUser && <p className="text-[11px] text-muted-foreground">Solo rellena si quieres cambiar la contraseña</p>}
-      </div>
+      {!editUser && (
+        <div className="space-y-1">
+          <Label className="text-[13px]">Contraseña</Label>
+          <Input type="password" value={formPassword} onChange={(e) => setFormPassword(e.target.value)} placeholder="Mín. 6 caracteres" className="h-10" />
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label className="text-[13px]">Departamento</Label>
@@ -162,7 +176,9 @@ export default function EquipoPage() {
           <Select value={formRol} onValueChange={setFormRol}>
             <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {ROLES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+              {(isSuperAdmin ? ROLES : ROLES.filter(r => r.value !== "super_admin")).map((r) => (
+                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
@@ -172,6 +188,9 @@ export default function EquipoPage() {
       </Button>
     </div>
   );
+
+  // Filter: admins only see active users, super_admin sees all
+  const visibleUsers = isSuperAdmin ? usuarios : usuarios.filter(u => u.activo);
 
   return (
     <div className="p-4 md:p-6 space-y-4 animate-fade-in">
@@ -198,7 +217,7 @@ export default function EquipoPage() {
       </Dialog>
 
       <div className="space-y-2">
-        {usuarios.map((u) => (
+        {visibleUsers.map((u) => (
           <Card key={u.id} className={`bg-card/60 backdrop-blur-sm border-border/50 ${!u.activo ? "opacity-50" : ""}`}>
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -209,21 +228,33 @@ export default function EquipoPage() {
                     {DEPARTAMENTOS.find((d) => d.value === u.departamento)?.label}
                   </Badge>
                   <Badge variant="outline" className="text-[10px]">{u.rol}</Badge>
+                  {!u.activo && <Badge variant="destructive" className="text-[10px]">Inactivo</Badge>}
                 </div>
               </div>
-              {isAdmin && (
+              {isAdmin && u.id !== usuario?.id && (
                 <div className="flex gap-1">
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(u)}>
                     <UserCog className="w-3.5 h-3.5" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    onClick={() => toggleActive(u)}
-                  >
-                    {u.activo ? "Desactivar" : "Activar"}
-                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar a {u.nombre}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {isSuperAdmin ? "Se desactivará permanentemente este usuario." : "Se eliminará del equipo."}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => deleteUser(u)}>Eliminar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
             </CardContent>
