@@ -53,7 +53,7 @@ interface Comentario {
   creado_en: string;
 }
 
-const DEPARTAMENTOS = [
+const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
   { value: "fyb", label: "F&B" },

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Trash2, Clock, ListChecks, Eye } from "lucide-react";
 
-const DEPARTAMENTOS = [
+const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
   { value: "fyb", label: "F&B" },

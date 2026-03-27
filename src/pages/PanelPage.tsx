@@ -92,10 +92,12 @@ export default function PanelPage() {
       setChecklistTotal(tareas?.length ?? 0);
       setChecklistDone(completedIds.size);
 
-      // Department progress (exclude direccion)
+      // Department progress (exclude direccion; exclude administracion for non-super_admin)
+      const isSuperAdmin = usuario?.rol === "super_admin";
       const deptMap: Record<string, { total: number; completed: number }> = {};
       (tareas ?? []).forEach((t) => {
         if (t.departamento === "direccion") return;
+        if (t.departamento === "administracion" && !isSuperAdmin) return;
         if (!deptMap[t.departamento]) deptMap[t.departamento] = { total: 0, completed: 0 };
         deptMap[t.departamento].total++;
         if (completedIds.has(t.id)) deptMap[t.departamento].completed++;
