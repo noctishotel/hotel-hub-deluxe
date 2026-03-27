@@ -101,6 +101,7 @@ export default function ChecklistsPage() {
   const isSuperAdmin = usuario?.rol === "super_admin";
   const isAdmin = usuario?.rol === "admin";
   const canManage = isSuperAdmin || isAdmin;
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [selectedDept, setSelectedDept] = useState<string>(currentDept);
 
   useEffect(() => {
