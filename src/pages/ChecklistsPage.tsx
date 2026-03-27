@@ -56,7 +56,7 @@ export default function ChecklistsPage() {
   const today = new Date().toISOString().split("T")[0];
 
   const currentDept = usuario?.departamento ?? "recepcion";
-  const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
+  const isSuperAdmin = usuario?.rol === "super_admin";
   const [selectedDept, setSelectedDept] = useState<string>(currentDept);
 
   useEffect(() => {
@@ -203,7 +203,7 @@ export default function ChecklistsPage() {
     <div className="p-4 md:p-6 space-y-4 animate-fade-in">
       <h1 className="text-xl font-semibold">Checklists</h1>
 
-      {isAdmin && (
+      {isSuperAdmin && (
         <Tabs value={selectedDept} onValueChange={setSelectedDept}>
           <TabsList className="flex-wrap">
             {DEPARTAMENTOS.map((d) => (
