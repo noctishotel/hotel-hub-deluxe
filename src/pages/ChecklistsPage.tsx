@@ -296,6 +296,10 @@ export default function ChecklistsPage() {
     text += "─".repeat(30) + "\n";
     text += `TOTAL: ${totalCompletadas}/${totalTareas.length} tareas completadas`;
 
+    if (notaExtra.trim()) {
+      text += `\n\n*TAREAS ADICIONALES*\n${notaExtra.trim()}`;
+    }
+
     return text;
   };
 
