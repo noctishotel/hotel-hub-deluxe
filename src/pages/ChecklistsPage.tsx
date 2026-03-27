@@ -5,14 +5,35 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { ChevronRight, Plus, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface Tarea {
   id: string;
@@ -52,11 +73,17 @@ export default function ChecklistsPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [registros, setRegistros] = useState<Set<string>>(new Set());
   const [pospuestas, setPospuestas] = useState<Set<string>>(new Set());
+  const [pospuestasDesdAyer, setPospuestasDesdAyer] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [editingTarea, setEditingTarea] = useState<Tarea | null>(null);
+  const [editTitulo, setEditTitulo] = useState("");
+  const [editDescripcion, setEditDescripcion] = useState("");
   const today = new Date().toISOString().split("T")[0];
 
   const currentDept = usuario?.departamento ?? "recepcion";
   const isSuperAdmin = usuario?.rol === "super_admin";
+  const isAdmin = usuario?.rol === "admin";
+  const canManage = isSuperAdmin || isAdmin;
   const [selectedDept, setSelectedDept] = useState<string>(currentDept);
 
   useEffect(() => {
@@ -65,17 +92,23 @@ export default function ChecklistsPage() {
 
   const loadData = async () => {
     try {
-      const [tareasRes, categoriasRes, registrosRes, pospuestasRes] = await Promise.all([
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      const [tareasRes, categoriasRes, registrosRes, pospuestasRes, pospuestasAyerRes] = await Promise.all([
         supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("registros_checklist").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha", today),
         supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_original", today),
+        supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_destino", today),
       ]);
 
       setTareas(tareasRes.data ?? []);
       setCategorias(categoriasRes.data ?? []);
       setRegistros(new Set((registrosRes.data ?? []).map((r) => r.tarea_id)));
       setPospuestas(new Set((pospuestasRes.data ?? []).map((p) => p.tarea_id)));
+      setPospuestasDesdAyer(new Set((pospuestasAyerRes.data ?? []).map((p) => p.tarea_id)));
     } catch (err) {
       console.error(err);
     } finally {
@@ -148,51 +181,139 @@ export default function ChecklistsPage() {
     }
   }, [hotelId, today]);
 
+  const deleteTarea = useCallback(async (tareaId: string) => {
+    try {
+      await supabase.from("tareas").update({ activo: false }).eq("id", tareaId);
+      setTareas((prev) => prev.filter((t) => t.id !== tareaId));
+      toast.success("Tarea eliminada");
+    } catch (err) {
+      toast.error("Error al eliminar tarea");
+    }
+  }, []);
+
+  const openEditDialog = (tarea: Tarea) => {
+    setEditingTarea(tarea);
+    setEditTitulo(tarea.titulo);
+    setEditDescripcion(tarea.descripcion ?? "");
+  };
+
+  const saveEdit = async () => {
+    if (!editingTarea) return;
+    try {
+      await supabase.from("tareas").update({
+        titulo: editTitulo,
+        descripcion: editDescripcion || null,
+      }).eq("id", editingTarea.id);
+      setTareas((prev) =>
+        prev.map((t) =>
+          t.id === editingTarea.id ? { ...t, titulo: editTitulo, descripcion: editDescripcion || null } : t
+        )
+      );
+      setEditingTarea(null);
+      toast.success("Tarea actualizada");
+    } catch (err) {
+      toast.error("Error al actualizar tarea");
+    }
+  };
+
   const tareasWithoutCategory = tareas.filter((t) => !t.categoria_id);
   const tareasForCategory = (catId: string) => tareas.filter((t) => t.categoria_id === catId);
 
   const renderTarea = (tarea: Tarea) => {
     const checked = registros.has(tarea.id);
     const postponed = pospuestas.has(tarea.id);
+    const wasPostponedFromYesterday = pospuestasDesdAyer.has(tarea.id);
 
     return (
       <div
         key={tarea.id}
-        className={`flex items-center gap-3 py-2 px-3 rounded-lg transition-colors ${
+        className={`py-2 px-3 rounded-lg transition-colors ${
           checked ? "opacity-50" : ""
         } ${postponed ? "opacity-40" : ""}`}
       >
-        <Checkbox
-          checked={checked}
-          onCheckedChange={() => toggleCheck(tarea.id)}
-          disabled={postponed}
-          onFocus={(e) => e.preventDefault()}
-        />
-        <span className={`flex-1 text-sm ${checked ? "line-through text-muted-foreground" : ""}`}>
-          {tarea.titulo}
-        </span>
-        <div className="flex items-center gap-1 shrink-0">
-          {!checked && !postponed && (
+        <div className="flex items-center gap-3">
+          <Checkbox
+            checked={checked}
+            onCheckedChange={() => toggleCheck(tarea.id)}
+            disabled={postponed}
+            onFocus={(e) => e.preventDefault()}
+          />
+          <span className={`flex-1 text-sm ${checked ? "line-through text-muted-foreground" : ""}`}>
+            {tarea.titulo}
+          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            {canManage && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                  onClick={() => openEditDialog(tarea)}
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Eliminar tarea?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Se eliminará "{tarea.titulo}". Esta acción no se puede deshacer.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => deleteTarea(tarea.id)}>
+                        Eliminar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Info de pospuesta desde ayer */}
+        {wasPostponedFromYesterday && !checked && (
+          <p className="ml-9 text-xs text-muted-foreground mt-0.5">
+            (No realizada el día anterior)
+          </p>
+        )}
+
+        {/* Botones de posponer debajo de la tarea */}
+        {!checked && !postponed && (
+          <div className="ml-9 mt-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground"
+              className="h-6 px-2 text-xs font-bold text-muted-foreground"
               onClick={() => postponeTask(tarea.id)}
             >
-              Posponer para mañana
+              Posponer
             </Button>
-          )}
-          {postponed && (
+          </div>
+        )}
+        {postponed && (
+          <div className="ml-9 mt-1">
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 px-2 text-xs text-warning"
+              className="h-6 px-2 text-xs text-warning"
               onClick={() => cancelPostpone(tarea.id)}
             >
               Cancelar posponer
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -265,6 +386,29 @@ export default function ChecklistsPage() {
           </div>
         )}
       </div>
+
+      {/* Dialog para editar tarea */}
+      <Dialog open={!!editingTarea} onOpenChange={(open) => !open && setEditingTarea(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar tarea</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Título</Label>
+              <Input value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <Textarea value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingTarea(null)}>Cancelar</Button>
+            <Button onClick={saveEdit} disabled={!editTitulo.trim()}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
