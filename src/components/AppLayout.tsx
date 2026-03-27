@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -46,6 +47,7 @@ const adminNav = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { usuario, signOut } = useAuth();
+  useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
