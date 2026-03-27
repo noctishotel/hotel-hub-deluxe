@@ -164,11 +164,9 @@ export default function ChecklistsPage() {
       >
         <Checkbox
           checked={checked}
-          onCheckedChange={(e) => {
-            toggleCheck(tarea.id);
-          }}
+          onCheckedChange={() => toggleCheck(tarea.id)}
           disabled={postponed}
-          onClick={(e) => e.stopPropagation()}
+          onFocus={(e) => e.preventDefault()}
         />
         <span className={`flex-1 text-sm ${checked ? "line-through text-muted-foreground" : ""}`}>
           {tarea.titulo}
