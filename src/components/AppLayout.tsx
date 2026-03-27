@@ -38,7 +38,7 @@ const mainNav = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
 ];
 
-const adminNav = [
+const adminNav: { to: string; label: string; icon: any; superOnly?: boolean }[] = [
   { to: "/equipo", label: "Equipo", icon: Users, superOnly: true },
   { to: "/informes", label: "Informes", icon: BarChart3 },
   { to: "/admin", label: "Administración", icon: Settings, superOnly: true },
@@ -47,12 +47,12 @@ const adminNav = [
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { usuario, signOut } = useAuth();
+  const { usuario, signOut, loading } = useAuth();
   useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
-  const isSuperAdmin = usuario?.rol === "super_admin";
+  const isAdmin = !loading && (usuario?.rol === "admin" || usuario?.rol === "super_admin");
+  const isSuperAdmin = !loading && usuario?.rol === "super_admin";
 
   const handleSignOut = async () => {
     await signOut();
