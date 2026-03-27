@@ -97,7 +97,7 @@ export default function AgendaPage() {
         .from("agenda")
         .select("*")
         .eq("hotel_id", hotelId)
-        .eq("departamento", selectedDept)
+        .eq("departamento", selectedDept as any)
         .order("fecha", { ascending: false });
 
       setItems((data as AgendaItem[]) ?? []);
