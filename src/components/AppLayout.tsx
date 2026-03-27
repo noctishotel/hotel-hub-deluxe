@@ -102,7 +102,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {adminNav.filter((item) => !item.superOnly || isSuperAdmin).map((item) => (
+                    {adminNav.filter((item) => item.superOnly !== true || isSuperAdmin).map((item) => (
                       <SidebarMenuItem key={item.to}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.to)}
