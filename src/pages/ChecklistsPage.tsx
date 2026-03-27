@@ -203,7 +203,7 @@ export default function ChecklistsPage() {
     <div className="p-4 md:p-6 space-y-4 animate-fade-in">
       <h1 className="text-xl font-semibold">Checklists</h1>
 
-      {isAdmin && (
+      {isSuperAdmin && (
         <Tabs value={selectedDept} onValueChange={setSelectedDept}>
           <TabsList className="flex-wrap">
             {DEPARTAMENTOS.map((d) => (
