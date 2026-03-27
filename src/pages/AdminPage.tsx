@@ -90,8 +90,8 @@ function PlantillasTab() {
   const loadData = async () => {
     try {
       const [catRes, taskRes] = await Promise.all([
-        supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept).eq("activo", true).order("orden"),
-        supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept).eq("activo", true).order("orden"),
+        supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
+        supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
       ]);
       setCategorias(catRes.data ?? []);
       setTareas(taskRes.data ?? []);

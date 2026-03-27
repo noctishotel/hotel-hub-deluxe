@@ -57,7 +57,7 @@ export default function ChecklistsPage() {
 
   const currentDept = usuario?.departamento ?? "recepcion";
   const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
-  const [selectedDept, setSelectedDept] = useState(currentDept);
+  const [selectedDept, setSelectedDept] = useState<string>(currentDept);
 
   useEffect(() => {
     if (hotelId) loadData();
