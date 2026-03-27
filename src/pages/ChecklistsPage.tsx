@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Share2 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -34,6 +34,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Tarea {
   id: string;
@@ -67,6 +74,12 @@ const DEPARTAMENTOS = [
   { value: "direccion", label: "Dirección" },
 ];
 
+const TIPOS_TAREA = [
+  { value: "tarea", label: "Tarea (check)" },
+  { value: "titulo", label: "Título (encabezado)" },
+  { value: "texto_libre", label: "Texto libre (explicación)" },
+];
+
 export default function ChecklistsPage() {
   const { usuario, hotelId } = useAuth();
   const [tareas, setTareas] = useState<Tarea[]>([]);
@@ -78,6 +91,7 @@ export default function ChecklistsPage() {
   const [editingTarea, setEditingTarea] = useState<Tarea | null>(null);
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
+  const [editTipo, setEditTipo] = useState("tarea");
   const today = new Date().toISOString().split("T")[0];
 
   const currentDept = usuario?.departamento ?? "recepcion";
@@ -92,10 +106,6 @@ export default function ChecklistsPage() {
 
   const loadData = async () => {
     try {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
-
       const [tareasRes, categoriasRes, registrosRes, pospuestasRes, pospuestasAyerRes] = await Promise.all([
         supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
@@ -195,6 +205,7 @@ export default function ChecklistsPage() {
     setEditingTarea(tarea);
     setEditTitulo(tarea.titulo);
     setEditDescripcion(tarea.descripcion ?? "");
+    setEditTipo(tarea.tipo);
   };
 
   const saveEdit = async () => {
@@ -203,10 +214,13 @@ export default function ChecklistsPage() {
       await supabase.from("tareas").update({
         titulo: editTitulo,
         descripcion: editDescripcion || null,
+        tipo: editTipo,
       }).eq("id", editingTarea.id);
       setTareas((prev) =>
         prev.map((t) =>
-          t.id === editingTarea.id ? { ...t, titulo: editTitulo, descripcion: editDescripcion || null } : t
+          t.id === editingTarea.id
+            ? { ...t, titulo: editTitulo, descripcion: editDescripcion || null, tipo: editTipo }
+            : t
         )
       );
       setEditingTarea(null);
@@ -214,6 +228,70 @@ export default function ChecklistsPage() {
     } catch (err) {
       toast.error("Error al actualizar tarea");
     }
+  };
+
+  // --- WhatsApp share ---
+  const generateWhatsAppSummary = () => {
+    const deptLabel = DEPARTAMENTOS.find((d) => d.value === selectedDept)?.label ?? selectedDept;
+    const dateFormatted = new Date().toLocaleDateString("es-ES", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
+    let text = `CHECKLIST ${deptLabel.toUpperCase()}\n${dateFormatted}\n`;
+    text += `Usuario: ${usuario?.nombre ?? "—"}\n`;
+    text += "─".repeat(30) + "\n\n";
+
+    const renderTareasForSummary = (tareasToRender: Tarea[]) => {
+      let section = "";
+      for (const t of tareasToRender) {
+        if (t.tipo === "titulo") {
+          section += `\n*${t.titulo.toUpperCase()}*\n`;
+        } else if (t.tipo === "texto_libre") {
+          section += `  ${t.titulo}\n`;
+        } else {
+          const checked = registros.has(t.id);
+          const postponed = pospuestas.has(t.id);
+          const wasFromYesterday = pospuestasDesdAyer.has(t.id);
+          let status = checked ? "OK" : postponed ? "POSPUESTA" : "PENDIENTE";
+          if (wasFromYesterday && !checked) status += " (pendiente del dia anterior)";
+          section += `- ${t.titulo}: ${status}\n`;
+        }
+      }
+      return section;
+    };
+
+    for (const cat of categorias) {
+      const catTareas = tareas.filter((t) => t.categoria_id === cat.id);
+      if (catTareas.length === 0) continue;
+      const completed = catTareas.filter((t) => t.tipo === "tarea" && registros.has(t.id)).length;
+      const total = catTareas.filter((t) => t.tipo === "tarea").length;
+      text += `*${cat.nombre.toUpperCase()}* (${completed}/${total})\n`;
+      text += renderTareasForSummary(catTareas);
+      text += "\n";
+    }
+
+    const sinCat = tareas.filter((t) => !t.categoria_id);
+    if (sinCat.length > 0) {
+      text += `*SIN CATEGORIA*\n`;
+      text += renderTareasForSummary(sinCat);
+      text += "\n";
+    }
+
+    const totalTareas = tareas.filter((t) => t.tipo === "tarea");
+    const totalCompletadas = totalTareas.filter((t) => registros.has(t.id)).length;
+    text += "─".repeat(30) + "\n";
+    text += `TOTAL: ${totalCompletadas}/${totalTareas.length} tareas completadas`;
+
+    return text;
+  };
+
+  const shareWhatsApp = () => {
+    const text = generateWhatsAppSummary();
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
   };
 
   const tareasWithoutCategory = tareas.filter((t) => !t.categoria_id);
@@ -224,6 +302,77 @@ export default function ChecklistsPage() {
     const postponed = pospuestas.has(tarea.id);
     const wasPostponedFromYesterday = pospuestasDesdAyer.has(tarea.id);
 
+    // Render as title header
+    if (tarea.tipo === "titulo") {
+      return (
+        <div key={tarea.id} className="flex items-center gap-2 pt-3 pb-1 px-3">
+          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide flex-1">
+            {tarea.titulo}
+          </h3>
+          {canManage && (
+            <div className="flex items-center gap-1 shrink-0">
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(tarea)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar título?</AlertDialogTitle>
+                    <AlertDialogDescription>Se eliminará "{tarea.titulo}".</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteTarea(tarea.id)}>Eliminar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Render as free text / explanation
+    if (tarea.tipo === "texto_libre") {
+      return (
+        <div key={tarea.id} className="flex items-start gap-2 py-1.5 px-3">
+          <p className="flex-1 text-xs text-muted-foreground italic leading-relaxed pl-2 border-l-2 border-border">
+            {tarea.titulo}
+          </p>
+          {canManage && (
+            <div className="flex items-center gap-1 shrink-0">
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(tarea)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>¿Eliminar texto?</AlertDialogTitle>
+                    <AlertDialogDescription>Se eliminará este texto libre.</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteTarea(tarea.id)}>Eliminar</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Default: checkable task
     return (
       <div
         key={tarea.id}
@@ -244,36 +393,23 @@ export default function ChecklistsPage() {
           <div className="flex items-center gap-1 shrink-0">
             {canManage && (
               <>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                  onClick={() => openEditDialog(tarea)}
-                >
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={() => openEditDialog(tarea)}>
                   <Pencil className="h-3.5 w-3.5" />
                 </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                    >
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive">
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Eliminar tarea?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Se eliminará "{tarea.titulo}". Esta acción no se puede deshacer.
-                      </AlertDialogDescription>
+                      <AlertDialogDescription>Se eliminará "{tarea.titulo}".</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteTarea(tarea.id)}>
-                        Eliminar
-                      </AlertDialogAction>
+                      <AlertDialogAction onClick={() => deleteTarea(tarea.id)}>Eliminar</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -282,14 +418,12 @@ export default function ChecklistsPage() {
           </div>
         </div>
 
-        {/* Info de pospuesta desde ayer */}
         {wasPostponedFromYesterday && !checked && (
           <p className="ml-9 text-xs text-muted-foreground mt-0.5">
             (No realizada el día anterior)
           </p>
         )}
 
-        {/* Botones de posponer debajo de la tarea */}
         {!checked && !postponed && (
           <div className="ml-9 mt-1">
             <Button
@@ -318,11 +452,27 @@ export default function ChecklistsPage() {
     );
   };
 
+  // Count only checkable tasks for badges
+  const countCheckable = (tareasArr: Tarea[]) => tareasArr.filter((t) => t.tipo === "tarea");
+
   if (loading) return <div className="p-6 text-center text-muted-foreground">Cargando...</div>;
 
   return (
     <div className="p-4 md:p-6 space-y-4 animate-fade-in">
-      <h1 className="text-xl font-semibold">Checklists</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Checklists</h1>
+        {tareas.length > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={shareWhatsApp}
+          >
+            <Share2 className="h-4 w-4" />
+            Compartir
+          </Button>
+        )}
+      </div>
 
       {isSuperAdmin && (
         <Tabs value={selectedDept} onValueChange={setSelectedDept}>
@@ -340,7 +490,8 @@ export default function ChecklistsPage() {
         {categorias.map((cat) => {
           const catTareas = tareasForCategory(cat.id);
           if (catTareas.length === 0) return null;
-          const completedCount = catTareas.filter((t) => registros.has(t.id)).length;
+          const checkable = countCheckable(catTareas);
+          const completedCount = checkable.filter((t) => registros.has(t.id)).length;
 
           return (
             <Collapsible key={cat.id} defaultOpen>
@@ -353,9 +504,11 @@ export default function ChecklistsPage() {
                       )}
                       {cat.nombre}
                     </CardTitle>
-                    <Badge variant="secondary" className="text-xs">
-                      {completedCount}/{catTareas.length}
-                    </Badge>
+                    {checkable.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {completedCount}/{checkable.length}
+                      </Badge>
+                    )}
                   </CardHeader>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -391,17 +544,38 @@ export default function ChecklistsPage() {
       <Dialog open={!!editingTarea} onOpenChange={(open) => !open && setEditingTarea(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Editar tarea</DialogTitle>
+            <DialogTitle>Editar elemento</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Título</Label>
-              <Input value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} />
+              <Label>Tipo</Label>
+              <Select value={editTipo} onValueChange={setEditTipo}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIPOS_TAREA.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
-              <Label>Descripción</Label>
-              <Textarea value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} />
+              <Label>{editTipo === "titulo" ? "Título" : editTipo === "texto_libre" ? "Texto" : "Título de la tarea"}</Label>
+              {editTipo === "texto_libre" ? (
+                <Textarea value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} rows={3} />
+              ) : (
+                <Input value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} />
+              )}
             </div>
+            {editTipo === "tarea" && (
+              <div className="space-y-2">
+                <Label>Descripción (opcional)</Label>
+                <Textarea value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingTarea(null)}>Cancelar</Button>
