@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Trash2, Clock, ListChecks, Bell } from "lucide-react";
+import { Trash2, Clock, ListChecks, Bell, Eye } from "lucide-react";
 
 interface StructuredNota {
   _structured: true;
@@ -25,6 +26,12 @@ interface AgendaItem {
   alerta_mensaje: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface UsuarioSimple {
+  id: string;
+  nombre: string;
+  departamento: string;
 }
 
 function parseNota(raw: string | null): StructuredNota | null {
@@ -58,6 +65,8 @@ const HOURS = Array.from({ length: 18 }, (_, i) => {
 
 export default function AgendaPage() {
   const { usuario, hotelId } = useAuth();
+  const isSuperAdmin = usuario?.rol === "super_admin";
+
   const [items, setItems] = useState<AgendaItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -68,17 +77,42 @@ export default function AgendaPage() {
   const [alertaMensaje, setAlertaMensaje] = useState("");
   const today = new Date().toISOString().split("T")[0];
 
+  // Super admin: browse other users' agendas
+  const [allUsers, setAllUsers] = useState<UsuarioSimple[]>([]);
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+  const isViewingOther = viewingUserId !== null && viewingUserId !== usuario?.id;
+
   useEffect(() => {
-    if (hotelId && usuario) loadAgenda();
+    if (hotelId && usuario) {
+      loadAgenda();
+      if (isSuperAdmin) loadAllUsers();
+    }
   }, [hotelId, usuario]);
 
+  useEffect(() => {
+    if (hotelId && usuario) loadAgenda();
+  }, [viewingUserId]);
+
+  const loadAllUsers = async () => {
+    const { data } = await supabase
+      .from("usuarios")
+      .select("id, nombre, departamento")
+      .eq("hotel_id", hotelId!)
+      .eq("activo", true)
+      .order("nombre");
+    setAllUsers(data ?? []);
+  };
+
+  const targetUserId = viewingUserId ?? usuario?.id;
+
   const loadAgenda = async () => {
+    if (!targetUserId) return;
     try {
       const { data } = await supabase
         .from("agenda")
         .select("*")
         .eq("hotel_id", hotelId!)
-        .eq("usuario_id", usuario!.id)
+        .eq("usuario_id", targetUserId)
         .order("fecha", { ascending: false });
       setItems(data ?? []);
 
@@ -90,9 +124,15 @@ export default function AgendaPage() {
           setCitas(structured.citas ?? {});
         } else {
           setListaTareas(todayItem.nota ?? "");
+          setCitas({});
         }
         setAlertaFecha(todayItem.alerta_fecha ?? "");
         setAlertaMensaje(todayItem.alerta_mensaje ?? "");
+      } else {
+        setListaTareas("");
+        setCitas({});
+        setAlertaFecha("");
+        setAlertaMensaje("");
       }
     } catch (err) {
       console.error(err);
@@ -107,6 +147,7 @@ export default function AgendaPage() {
   }, [listaTareas, citas]);
 
   const saveNota = async () => {
+    if (isViewingOther) return; // read-only when viewing others
     try {
       const notaJson = buildNota();
       const existing = items.find((i) => i.fecha === today);
@@ -147,6 +188,7 @@ export default function AgendaPage() {
   };
 
   const deleteItem = async (id: string) => {
+    if (isViewingOther) return;
     try {
       await supabase.from("agenda").delete().eq("id", id);
       loadAgenda();
@@ -167,6 +209,37 @@ export default function AgendaPage() {
         <span className="text-xs text-muted-foreground">{today}</span>
       </div>
 
+      {/* Super admin: user selector */}
+      {isSuperAdmin && allUsers.length > 0 && (
+        <Card className="bg-card/60 backdrop-blur-sm border-border/50">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-primary shrink-0" />
+              <Select
+                value={viewingUserId ?? usuario?.id ?? ""}
+                onValueChange={(val) => setViewingUserId(val === usuario?.id ? null : val)}
+              >
+                <SelectTrigger className="h-9 text-sm flex-1">
+                  <SelectValue placeholder="Seleccionar usuario" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allUsers.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.nombre} {u.id === usuario?.id ? "(Tú)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {isViewingOther && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                Modo consulta — solo lectura
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Lista de tareas */}
       <Card className="bg-card/60 backdrop-blur-sm border-border/50">
         <CardContent className="p-3 space-y-2">
@@ -180,6 +253,7 @@ export default function AgendaPage() {
             onChange={(e) => setListaTareas(e.target.value)}
             rows={4}
             className="text-sm"
+            readOnly={isViewingOther}
           />
         </CardContent>
       </Card>
@@ -202,6 +276,7 @@ export default function AgendaPage() {
                   placeholder="—"
                   value={citas[hour] ?? ""}
                   onChange={(e) => updateCita(hour, e.target.value)}
+                  readOnly={isViewingOther}
                 />
               </div>
             ))}
@@ -209,32 +284,34 @@ export default function AgendaPage() {
         </CardContent>
       </Card>
 
-      {/* Recordatorio + Guardar */}
-      <Card className="bg-card/60 backdrop-blur-sm border-border/50">
-        <CardContent className="p-3 space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <Bell className="w-4 h-4 text-primary" />
-            Recordatorio
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              type="datetime-local"
-              value={alertaFecha}
-              onChange={(e) => setAlertaFecha(e.target.value)}
-              className="h-9 text-xs"
-            />
-            <Input
-              placeholder="Mensaje..."
-              value={alertaMensaje}
-              onChange={(e) => setAlertaMensaje(e.target.value)}
-              className="h-9 text-xs"
-            />
-          </div>
-          <Button onClick={saveNota} size="sm" className="w-full">
-            Guardar agenda
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Recordatorio + Guardar — solo si es propia */}
+      {!isViewingOther && (
+        <Card className="bg-card/60 backdrop-blur-sm border-border/50">
+          <CardContent className="p-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Bell className="w-4 h-4 text-primary" />
+              Recordatorio
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="datetime-local"
+                value={alertaFecha}
+                onChange={(e) => setAlertaFecha(e.target.value)}
+                className="h-9 text-xs"
+              />
+              <Input
+                placeholder="Mensaje..."
+                value={alertaMensaje}
+                onChange={(e) => setAlertaMensaje(e.target.value)}
+                className="h-9 text-xs"
+              />
+            </div>
+            <Button onClick={saveNota} size="sm" className="w-full">
+              Guardar agenda
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Historial */}
       {items.filter((i) => i.fecha !== today).length > 0 && (
@@ -258,14 +335,16 @@ export default function AgendaPage() {
                       {notaToPlainText(item.nota)}
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 text-destructive shrink-0"
-                    onClick={() => deleteItem(item.id)}
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
+                  {!isViewingOther && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-destructive shrink-0"
+                      onClick={() => deleteItem(item.id)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))}
