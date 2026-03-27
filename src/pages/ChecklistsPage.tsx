@@ -66,8 +66,8 @@ export default function ChecklistsPage() {
   const loadData = async () => {
     try {
       const [tareasRes, categoriasRes, registrosRes, pospuestasRes] = await Promise.all([
-        supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept).eq("activo", true).order("orden"),
-        supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept).eq("activo", true).order("orden"),
+        supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
+        supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("registros_checklist").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha", today),
         supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_original", today),
       ]);
