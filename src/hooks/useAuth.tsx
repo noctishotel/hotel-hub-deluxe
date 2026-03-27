@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -35,6 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
+  const lastFetchId = useRef(0);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
@@ -66,25 +67,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const fetchUsuario = async (authId: string) => {
+    const currentFetchId = ++lastFetchId.current;
+
     try {
       const { data, error } = await supabase
         .from("usuarios")
         .select("*")
         .eq("auth_id", authId)
         .eq("activo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
+
+      if (currentFetchId !== lastFetchId.current) return;
+
       setUsuario(data as Usuario | null);
     } catch (err) {
       console.error("Error fetching usuario:", err);
+
+      if (currentFetchId !== lastFetchId.current) return;
+
       setUsuario(null);
     } finally {
-      setLoading(false);
+      if (currentFetchId === lastFetchId.current) {
+        setLoading(false);
+      }
     }
   };
 
   const signOut = async () => {
+    lastFetchId.current += 1;
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
