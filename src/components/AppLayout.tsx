@@ -57,6 +57,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const role = !loading ? usuario?.rol ?? null : null;
   const isSuperAdmin = role === "super_admin";
   const isAdmin = role === "admin" || isSuperAdmin;
+  const visibleMainNav = !loading && role ? mainNav : [];
+  const visibleAdminNav = isAdmin ? adminNav : [];
+  const visibleSuperAdminNav = isSuperAdmin ? superAdminNav : [];
 
   const handleSignOut = async () => {
     await signOut();
@@ -64,7 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider key={role ?? "guest"}>
       <div className="flex min-h-svh w-full">
         <Sidebar>
           <SidebarHeader className="p-4">
@@ -76,14 +79,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p className="text-xs text-sidebar-foreground/60">Gestión Hotelera</p>
           </SidebarHeader>
           <SidebarContent>
-            {!loading && role && (
+            {visibleMainNav.length > 0 && (
               <SidebarGroup>
                 <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
                   Navegación
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {mainNav.map((item) => (
+                    {visibleMainNav.map((item) => (
                       <SidebarMenuItem key={item.to}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.to)}
@@ -100,14 +103,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarGroupContent>
               </SidebarGroup>
             )}
-            {isAdmin && (
+            {visibleAdminNav.length > 0 && (
               <SidebarGroup>
                 <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
                   Gestión
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {adminNav.map((item) => (
+                    {visibleAdminNav.map((item) => (
                       <SidebarMenuItem key={item.to}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.to)}
@@ -124,14 +127,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarGroupContent>
               </SidebarGroup>
             )}
-            {isSuperAdmin && (
+            {visibleSuperAdminNav.length > 0 && (
               <SidebarGroup>
                 <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
                   Super admin
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {superAdminNav.map((item) => (
+                    {visibleSuperAdminNav.map((item) => (
                       <SidebarMenuItem key={item.to}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.to)}
