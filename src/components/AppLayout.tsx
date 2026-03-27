@@ -51,8 +51,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdmin = !loading && (usuario?.rol === "admin" || usuario?.rol === "super_admin");
-  const isSuperAdmin = !loading && usuario?.rol === "super_admin";
+  const rolUsuario = usuario?.rol;
+  const isAdmin = !loading && (rolUsuario === "admin" || rolUsuario === "super_admin");
+  const isSuperAdmin = !loading && rolUsuario === "super_admin";
 
   const handleSignOut = async () => {
     await signOut();
