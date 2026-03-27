@@ -40,16 +40,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchUsuario(s.user.id);
-      else setLoading(false);
+      setUsuario(null);
+      if (s?.user) {
+        setLoading(true);
+        fetchUsuario(s.user.id);
+      } else {
+        setLoading(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      if (s?.user) fetchUsuario(s.user.id);
+      setUsuario(null);
+      if (s?.user) {
+        setLoading(true);
+        fetchUsuario(s.user.id);
+      }
       else {
-        setUsuario(null);
         setLoading(false);
       }
     });
