@@ -61,6 +61,12 @@ export function applyTheme(config: Record<string, string>) {
     }
   }
 
+  // Card colors for dashboard KPIs
+  if (config.card1_color) root.style.setProperty("--card1-color", config.card1_color);
+  if (config.card2_color) root.style.setProperty("--card2-color", config.card2_color);
+  if (config.card3_color) root.style.setProperty("--card3-color", config.card3_color);
+  if (config.card4_color) root.style.setProperty("--card4-color", config.card4_color);
+
   // Sidebar accent follows tab active
   if (config.tab_active_bg) {
     root.style.setProperty("--sidebar-accent", hexToHSL(config.tab_active_bg));
