@@ -35,10 +35,10 @@ const mainNav = [
   { to: "/incidencias", label: "Incidencias", icon: AlertTriangle },
   { to: "/alarmas", label: "Alarmas", icon: Bell },
   { to: "/agenda", label: "Agenda", icon: Calendar },
-  { to: "/equipo", label: "Equipo", icon: Users },
 ];
 
 const adminNav = [
+  { to: "/equipo", label: "Equipo", icon: Users, adminOnly: true },
   { to: "/informes", label: "Informes", icon: BarChart3, adminOnly: true },
   { to: "/admin", label: "Administración", icon: Settings, adminOnly: true },
   { to: "/hoteles", label: "Hoteles", icon: Hotel, adminOnly: true },
