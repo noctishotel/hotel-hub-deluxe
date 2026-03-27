@@ -54,9 +54,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const rolUsuario = usuario?.rol;
-  const isSuperAdmin = !loading && rolUsuario === "super_admin";
-  const isAdmin = !loading && (rolUsuario === "admin" || isSuperAdmin);
+  const role = !loading ? usuario?.rol ?? null : null;
+  const isSuperAdmin = role === "super_admin";
+  const isAdmin = role === "admin" || isSuperAdmin;
 
   const handleSignOut = async () => {
     await signOut();
@@ -76,28 +76,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p className="text-xs text-sidebar-foreground/60">Gestión Hotelera</p>
           </SidebarHeader>
           <SidebarContent>
-            <SidebarGroup>
-              <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
-                Navegación
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {mainNav.map((item) => (
-                    <SidebarMenuItem key={item.to}>
-                      <SidebarMenuButton
-                        onClick={() => navigate(item.to)}
-                        isActive={location.pathname === item.to}
-                        style={{ fontSize: "var(--sidebar-item-size)" }}
-                        className={location.pathname === item.to ? "bg-[hsl(var(--tab-active-bg))] text-[hsl(var(--tab-active-fg))]" : ""}
-                      >
-                        <item.icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+            {!loading && role && (
+              <SidebarGroup>
+                <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
+                  Navegación
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {mainNav.map((item) => (
+                      <SidebarMenuItem key={item.to}>
+                        <SidebarMenuButton
+                          onClick={() => navigate(item.to)}
+                          isActive={location.pathname === item.to}
+                          style={{ fontSize: "var(--sidebar-item-size)" }}
+                          className={location.pathname === item.to ? "bg-[hsl(var(--tab-active-bg))] text-[hsl(var(--tab-active-fg))]" : ""}
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
             {isAdmin && (
               <SidebarGroup>
                 <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
@@ -148,12 +150,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
           </SidebarContent>
           <SidebarFooter className="p-4 space-y-2">
-            <div className="text-xs text-sidebar-foreground/60 truncate">
-              {usuario?.nombre}
-            </div>
-            <div className="text-[11px] text-sidebar-foreground/40 truncate">
-              {usuario?.email}
-            </div>
+            {!loading && role && (
+              <>
+                <div className="text-xs text-sidebar-foreground/60 truncate">
+                  {usuario?.nombre}
+                </div>
+                <div className="text-[11px] text-sidebar-foreground/40 truncate">
+                  {usuario?.email}
+                </div>
+              </>
+            )}
             <SidebarMenuButton onClick={handleSignOut} className="w-full mt-2 text-sidebar-foreground/70 hover:text-sidebar-foreground">
               <LogOut className="w-4 h-4" />
               <span>Cerrar sesión</span>

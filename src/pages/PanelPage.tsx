@@ -61,12 +61,13 @@ export default function PanelPage() {
         .eq("hotel_id", hotelId!)
         .eq("atendida", false);
 
-      // Equipo activo
-      const { data: equipo } = await supabase
-        .from("usuarios")
-        .select("id")
-        .eq("hotel_id", hotelId!)
-        .eq("activo", true);
+      const equipo = isSuperAdmin
+        ? await supabase
+            .from("usuarios")
+            .select("id")
+            .eq("hotel_id", hotelId!)
+            .eq("activo", true)
+        : { data: [] };
 
       // Tareas activas con departamento
       const { data: tareas } = await supabase
@@ -87,7 +88,7 @@ export default function PanelPage() {
       setStats({
         abiertas: inc?.filter((i) => i.estado === "abierta").length ?? 0,
         alertas: alertas?.length ?? 0,
-        equipo: equipo?.length ?? 0,
+        equipo: equipo.data?.length ?? 0,
       });
 
       setChecklistTotal(tareas?.length ?? 0);
