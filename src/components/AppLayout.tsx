@@ -38,7 +38,7 @@ const mainNav = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
 ];
 
-const adminNav = [
+const adminNav: { to: string; label: string; icon: any; superOnly?: boolean }[] = [
   { to: "/equipo", label: "Equipo", icon: Users, superOnly: true },
   { to: "/informes", label: "Informes", icon: BarChart3 },
   { to: "/admin", label: "Administración", icon: Settings, superOnly: true },
