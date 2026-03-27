@@ -41,7 +41,7 @@ const mainNav = [
 const adminNav = [
   { to: "/equipo", label: "Equipo", icon: Users, superOnly: true },
   { to: "/informes", label: "Informes", icon: BarChart3 },
-  { to: "/admin", label: "Administración", icon: Settings },
+  { to: "/admin", label: "Administración", icon: Settings, superOnly: true },
   { to: "/hoteles", label: "Hoteles", icon: Hotel, superOnly: true },
   { to: "/historial-checklists", label: "Historial", icon: History },
 ];
