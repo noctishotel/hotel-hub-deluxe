@@ -41,11 +41,11 @@ const App = () => (
             <Route path="/checklists" element={<ProtectedRoute><AppLayout><ChecklistsPage /></AppLayout></ProtectedRoute>} />
             <Route path="/incidencias" element={<ProtectedRoute><AppLayout><IncidenciasPage /></AppLayout></ProtectedRoute>} />
             <Route path="/alarmas" element={<ProtectedRoute><AppLayout><AlarmasPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/equipo" element={<ProtectedRoute adminOnly><AppLayout><EquipoPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/equipo" element={<ProtectedRoute superOnly><AppLayout><EquipoPage /></AppLayout></ProtectedRoute>} />
             <Route path="/informes" element={<ProtectedRoute adminOnly><AppLayout><InformesPage /></AppLayout></ProtectedRoute>} />
             <Route path="/agenda" element={<ProtectedRoute><AppLayout><AgendaPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute adminOnly><AppLayout><AdminPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/hoteles" element={<ProtectedRoute adminOnly><AppLayout><HotelesPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute superOnly><AppLayout><AdminPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/hoteles" element={<ProtectedRoute superOnly><AppLayout><HotelesPage /></AppLayout></ProtectedRoute>} />
             <Route path="/historial-checklists" element={<ProtectedRoute adminOnly><AppLayout><HistorialChecklistsPage /></AppLayout></ProtectedRoute>} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
