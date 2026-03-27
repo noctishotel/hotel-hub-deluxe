@@ -56,7 +56,7 @@ export default function ChecklistsPage() {
   const today = new Date().toISOString().split("T")[0];
 
   const currentDept = usuario?.departamento ?? "recepcion";
-  const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
+  const isSuperAdmin = usuario?.rol === "super_admin";
   const [selectedDept, setSelectedDept] = useState<string>(currentDept);
 
   useEffect(() => {
