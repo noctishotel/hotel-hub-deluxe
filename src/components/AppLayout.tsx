@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarInset,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard,
@@ -131,6 +132,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
+          <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background px-2 md:hidden">
+            <SidebarTrigger />
+            <span className="ml-2 text-sm font-semibold text-foreground">Noctis Hub</span>
+          </header>
           <div className="flex-1 overflow-auto">
             {children}
           </div>
