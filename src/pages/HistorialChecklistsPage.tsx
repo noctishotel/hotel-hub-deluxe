@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-const DEPARTAMENTOS = [
+const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
   { value: "fyb", label: "F&B" },
@@ -38,7 +38,9 @@ interface Usuario {
 }
 
 export default function HistorialChecklistsPage() {
-  const { hotelId } = useAuth();
+  const { hotelId, usuario } = useAuth();
+  const isSuperAdmin = usuario?.rol === "super_admin";
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [tareas, setTareas] = useState<Record<string, Tarea>>({});
   const [usuarios, setUsuarios] = useState<Record<string, Usuario>>({});

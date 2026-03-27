@@ -53,7 +53,7 @@ interface Comentario {
   creado_en: string;
 }
 
-const DEPARTAMENTOS = [
+const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
   { value: "fyb", label: "F&B" },
@@ -78,6 +78,8 @@ const PRIORIDADES: { value: Prioridad; label: string }[] = [
 
 export default function IncidenciasPage() {
   const { usuario, hotelId } = useAuth();
+  const isSuperAdmin = usuario?.rol === "super_admin";
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);

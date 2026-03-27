@@ -10,7 +10,7 @@ import { Download, Share2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const DEPARTAMENTOS = [
+const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
   { value: "fyb", label: "F&B" },
@@ -67,6 +67,7 @@ export default function InformesPage() {
   const [periodoChecklists, setPeriodoChecklists] = useState("7");
 
   const isSuperAdmin = usuario?.rol === "super_admin";
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
 
   useEffect(() => {
     if (hotelId) loadData();

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Trash2, Clock, ListChecks, Eye } from "lucide-react";
 
-const DEPARTAMENTOS = [
+const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
   { value: "fyb", label: "F&B" },
@@ -77,6 +77,7 @@ export default function AgendaPage() {
   const today = new Date().toISOString().split("T")[0];
 
   // Department selection: super admin can switch, others fixed to their own
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [selectedDept, setSelectedDept] = useState<string>("");
 
   useEffect(() => {
