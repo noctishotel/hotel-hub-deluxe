@@ -241,7 +241,31 @@ export default function ChecklistsPage() {
     }
   };
 
-  // --- WhatsApp share ---
+  const saveNotaExtra = useCallback(async () => {
+    if (!hotelId || !usuario?.id) return;
+    setSavingNota(true);
+    try {
+      if (notaExtraId) {
+        await supabase.from("notas_checklist" as any).update({ nota: notaExtra } as any).eq("id", notaExtraId);
+      } else {
+        const { data } = await supabase.from("notas_checklist" as any).insert({
+          hotel_id: hotelId,
+          departamento: selectedDept,
+          fecha: today,
+          nota: notaExtra,
+          usuario_id: usuario.id,
+        } as any).select("id").single();
+        if (data) setNotaExtraId((data as any).id);
+      }
+      toast.success("Nota guardada");
+    } catch (err) {
+      toast.error("Error al guardar nota");
+    } finally {
+      setSavingNota(false);
+    }
+  }, [notaExtra, notaExtraId, hotelId, usuario?.id, selectedDept, today]);
+
+
   const generateWhatsAppSummary = () => {
     const deptLabel = DEPARTAMENTOS.find((d) => d.value === selectedDept)?.label ?? selectedDept;
     const dateFormatted = new Date().toLocaleDateString("es-ES", {
