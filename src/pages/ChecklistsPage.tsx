@@ -81,6 +81,7 @@ const TIPOS_TAREA = [
 ];
 
 export default function ChecklistsPage() {
+  const { usuario, hotelId } = useAuth();
   const isSuperAdmin = usuario?.rol === "super_admin";
   const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [tareas, setTareas] = useState<Tarea[]>([]);

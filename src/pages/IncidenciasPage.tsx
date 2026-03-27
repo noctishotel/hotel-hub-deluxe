@@ -77,6 +77,7 @@ const PRIORIDADES: { value: Prioridad; label: string }[] = [
 ];
 
 export default function IncidenciasPage() {
+  const { usuario, hotelId } = useAuth();
   const isSuperAdmin = usuario?.rol === "super_admin";
   const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [incidencias, setIncidencias] = useState<Incidencia[]>([]);
