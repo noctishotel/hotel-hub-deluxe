@@ -226,7 +226,7 @@ export default function ChecklistsPage() {
           return (
             <Collapsible key={cat.id} defaultOpen>
               <Card className="bg-card/60 backdrop-blur-sm border-border/50">
-                <CollapsibleTrigger className="w-full" onClick={(e) => e.preventDefault()} asChild>
+                <CollapsibleTrigger className="w-full">
                   <CardHeader className="flex flex-row items-center justify-between py-3 cursor-pointer">
                     <CardTitle className="text-sm font-medium flex items-center gap-2">
                       {cat.color && (
