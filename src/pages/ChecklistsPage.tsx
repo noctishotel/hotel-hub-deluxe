@@ -92,6 +92,9 @@ export default function ChecklistsPage() {
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
   const [editTipo, setEditTipo] = useState("tarea");
+  const [notaExtra, setNotaExtra] = useState("");
+  const [notaExtraId, setNotaExtraId] = useState<string | null>(null);
+  const [savingNota, setSavingNota] = useState(false);
   const today = new Date().toISOString().split("T")[0];
 
   const currentDept = usuario?.departamento ?? "recepcion";
