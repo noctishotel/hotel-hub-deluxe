@@ -39,6 +39,8 @@ const ROLES = [
 
 export default function EquipoPage() {
   const { usuario, hotelId } = useAuth();
+  const isSuperAdmin = usuario?.rol === "super_admin";
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
