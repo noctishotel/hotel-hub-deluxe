@@ -579,6 +579,32 @@ export default function ChecklistsPage() {
         )}
       </div>
 
+      {/* Cuadro de texto libre para tareas adicionales (mantenimiento) */}
+      {selectedDept === "mantenimiento" && (
+        <Card className="bg-card/60 backdrop-blur-sm border-border/50">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm font-medium">Tareas adicionales realizadas</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 space-y-3">
+            <Textarea
+              placeholder="Anota aquí las tareas realizadas que no estaban en la lista..."
+              value={notaExtra}
+              onChange={(e) => setNotaExtra(e.target.value)}
+              rows={4}
+              className="text-sm"
+            />
+            <Button
+              size="sm"
+              onClick={saveNotaExtra}
+              disabled={savingNota}
+              className="w-full sm:w-auto"
+            >
+              {savingNota ? "Guardando..." : "Guardar nota"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Dialog para editar tarea */}
       <Dialog open={!!editingTarea} onOpenChange={(open) => !open && setEditingTarea(null)}>
         <DialogContent>
