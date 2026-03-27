@@ -71,34 +71,37 @@ export type Database = {
           alerta_fecha: string | null
           alerta_mensaje: string | null
           created_at: string
+          departamento: Database["public"]["Enums"]["departamento"] | null
           fecha: string
           hotel_id: string
           id: string
           nota: string | null
           updated_at: string
-          usuario_id: string
+          usuario_id: string | null
         }
         Insert: {
           alerta_fecha?: string | null
           alerta_mensaje?: string | null
           created_at?: string
+          departamento?: Database["public"]["Enums"]["departamento"] | null
           fecha: string
           hotel_id: string
           id?: string
           nota?: string | null
           updated_at?: string
-          usuario_id: string
+          usuario_id?: string | null
         }
         Update: {
           alerta_fecha?: string | null
           alerta_mensaje?: string | null
           created_at?: string
+          departamento?: Database["public"]["Enums"]["departamento"] | null
           fecha?: string
           hotel_id?: string
           id?: string
           nota?: string | null
           updated_at?: string
-          usuario_id?: string
+          usuario_id?: string | null
         }
         Relationships: [
           {
