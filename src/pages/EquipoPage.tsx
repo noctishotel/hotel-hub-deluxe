@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,8 @@ const ROLES = [
 
 export default function EquipoPage() {
   const { usuario, hotelId } = useAuth();
-  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || usuario?.rol === "super_admin");
+  const isSuperAdmin = usuario?.rol === "super_admin";
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -52,12 +54,15 @@ export default function EquipoPage() {
   const [formDept, setFormDept] = useState("recepcion");
   const [saving, setSaving] = useState(false);
 
-  const isSuperAdmin = usuario?.rol === "super_admin";
   const isAdmin = usuario?.rol === "admin" || isSuperAdmin;
 
   useEffect(() => {
     if (hotelId) loadUsers();
   }, [hotelId]);
+
+  if (usuario && !isSuperAdmin) {
+    return <Navigate to="/panel" replace />;
+  }
 
   const loadUsers = async () => {
     try {

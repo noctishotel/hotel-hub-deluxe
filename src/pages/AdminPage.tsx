@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { applyTheme, COLOR_FIELDS, DEFAULT_THEME, PALETTE_PRESETS } from "@/hooks/useTheme";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,8 +54,12 @@ interface ConfigItem {
 }
 
 export default function AdminPage() {
-  const { hotelId } = useAuth();
+  const { usuario } = useAuth();
   const [activeTab, setActiveTab] = useState("plantillas");
+
+  if (usuario && usuario.rol !== "super_admin") {
+    return <Navigate to="/panel" replace />;
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-4 animate-fade-in">
