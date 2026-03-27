@@ -109,19 +109,27 @@ export default function ChecklistsPage() {
 
   const loadData = async () => {
     try {
-      const [tareasRes, categoriasRes, registrosRes, pospuestasRes, pospuestasAyerRes] = await Promise.all([
+      const [tareasRes, categoriasRes, registrosRes, pospuestasRes, pospuestasAyerRes, notaRes] = await Promise.all([
         supabase.from("tareas").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("registros_checklist").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha", today),
         supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_original", today),
         supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_destino", today),
+        supabase.from("notas_checklist" as any).select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("fecha", today).eq("usuario_id", usuario?.id).maybeSingle(),
       ]);
 
       setTareas(tareasRes.data ?? []);
       setCategorias(categoriasRes.data ?? []);
-      setRegistros(new Set((registrosRes.data ?? []).map((r) => r.tarea_id)));
-      setPospuestas(new Set((pospuestasRes.data ?? []).map((p) => p.tarea_id)));
-      setPospuestasDesdAyer(new Set((pospuestasAyerRes.data ?? []).map((p) => p.tarea_id)));
+      setRegistros(new Set((registrosRes.data ?? []).map((r: any) => r.tarea_id)));
+      setPospuestas(new Set((pospuestasRes.data ?? []).map((p: any) => p.tarea_id)));
+      setPospuestasDesdAyer(new Set((pospuestasAyerRes.data ?? []).map((p: any) => p.tarea_id)));
+      if (notaRes.data) {
+        setNotaExtra((notaRes.data as any).nota ?? "");
+        setNotaExtraId((notaRes.data as any).id);
+      } else {
+        setNotaExtra("");
+        setNotaExtraId(null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
