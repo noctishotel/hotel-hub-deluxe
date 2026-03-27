@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Bell, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Bell, X, ChevronDown, ChevronUp, Archive, MessageSquare, Send } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Separator } from "@/components/ui/separator";
 
 type Estado = "abierta" | "en_proceso" | "resuelta" | "cerrada";
 type Prioridad = "baja" | "media" | "alta" | "urgente";
@@ -44,6 +45,14 @@ interface Recordatorio {
   visto: boolean;
 }
 
+interface Comentario {
+  id: string;
+  incidencia_id: string;
+  texto: string;
+  autor: string | null;
+  creado_en: string;
+}
+
 const DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
@@ -57,7 +66,7 @@ const ESTADOS: { value: Estado; label: string; color: string }[] = [
   { value: "abierta", label: "Abierta", color: "hsl(0, 72%, 51%)" },
   { value: "en_proceso", label: "En proceso", color: "hsl(38, 92%, 50%)" },
   { value: "resuelta", label: "Resuelta", color: "hsl(142, 52%, 36%)" },
-  { value: "cerrada", label: "Cerrada", color: "hsl(0, 0%, 45%)" },
+  { value: "cerrada", label: "Archivada", color: "hsl(0, 0%, 45%)" },
 ];
 
 const PRIORIDADES: { value: Prioridad; label: string }[] = [
@@ -73,29 +82,29 @@ export default function IncidenciasPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
-  const [filterEstado, setFilterEstado] = useState<string>("all");
+  const [filterEstado, setFilterEstado] = useState<string>("activas");
   const [filterDept, setFilterDept] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [recordatorios, setRecordatorios] = useState<Record<string, Recordatorio[]>>({});
+  const [comentarios, setComentarios] = useState<Record<string, Comentario[]>>({});
 
-  // New incidencia form
   const [newTitulo, setNewTitulo] = useState("");
   const [newDescripcion, setNewDescripcion] = useState("");
   const [newDepartamento, setNewDepartamento] = useState("recepcion");
   const [newPrioridad, setNewPrioridad] = useState<Prioridad>("media");
   const [newAsignado, setNewAsignado] = useState("");
 
-  // Edit inline
   const [editTitulo, setEditTitulo] = useState("");
   const [editDescripcion, setEditDescripcion] = useState("");
   const [editPrioridad, setEditPrioridad] = useState<Prioridad>("media");
   const [editDept, setEditDept] = useState("");
   const [editAsignado, setEditAsignado] = useState("");
 
-  // Alarm form
   const [alarmIncId, setAlarmIncId] = useState<string | null>(null);
   const [alarmFecha, setAlarmFecha] = useState("");
   const [alarmMensaje, setAlarmMensaje] = useState("");
+
+  const [newComment, setNewComment] = useState("");
 
   const isAdmin = usuario?.rol === "admin" || usuario?.rol === "super_admin";
 
@@ -105,10 +114,11 @@ export default function IncidenciasPage() {
 
   const loadData = async () => {
     try {
-      const [incRes, usrRes, recRes] = await Promise.all([
+      const [incRes, usrRes, recRes, comRes] = await Promise.all([
         supabase.from("incidencias").select("*").eq("hotel_id", hotelId!).order("creado_en", { ascending: false }),
         supabase.from("usuarios").select("id, nombre, departamento").eq("hotel_id", hotelId!).eq("activo", true),
         supabase.from("recordatorios_incidencia").select("*").eq("hotel_id", hotelId!),
+        supabase.from("comentarios_incidencia").select("*").eq("hotel_id", hotelId!).order("creado_en", { ascending: true }),
       ]);
       setIncidencias(incRes.data ?? []);
       setUsuarios(usrRes.data ?? []);
@@ -119,6 +129,13 @@ export default function IncidenciasPage() {
         recMap[r.incidencia_id].push(r);
       });
       setRecordatorios(recMap);
+
+      const comMap: Record<string, Comentario[]> = {};
+      (comRes.data ?? []).forEach((c: any) => {
+        if (!comMap[c.incidencia_id]) comMap[c.incidencia_id] = [];
+        comMap[c.incidencia_id].push(c);
+      });
+      setComentarios(comMap);
     } catch (err) {
       console.error(err);
     } finally {
@@ -141,12 +158,9 @@ export default function IncidenciasPage() {
       if (error) throw error;
       toast.success("Incidencia creada");
       setShowNew(false);
-      setNewTitulo("");
-      setNewDescripcion("");
+      setNewTitulo(""); setNewDescripcion("");
       loadData();
-    } catch {
-      toast.error("Error al crear incidencia");
-    }
+    } catch { toast.error("Error al crear incidencia"); }
   };
 
   const updateEstado = async (id: string, estado: Estado) => {
@@ -159,6 +173,10 @@ export default function IncidenciasPage() {
       });
       toast.success("Estado actualizado");
     } catch { toast.error("Error"); }
+  };
+
+  const archivar = async (id: string) => {
+    await updateEstado(id, "cerrada");
   };
 
   const saveEdit = async (id: string) => {
@@ -190,16 +208,11 @@ export default function IncidenciasPage() {
     if (!alarmIncId || !alarmFecha) return;
     try {
       await supabase.from("recordatorios_incidencia").insert({
-        incidencia_id: alarmIncId,
-        hotel_id: hotelId!,
-        usuario_id: usuario!.id,
-        fecha_alerta: alarmFecha,
-        mensaje: alarmMensaje || null,
+        incidencia_id: alarmIncId, hotel_id: hotelId!, usuario_id: usuario!.id,
+        fecha_alerta: alarmFecha, mensaje: alarmMensaje || null,
       });
       toast.success("Recordatorio añadido");
-      setAlarmIncId(null);
-      setAlarmFecha("");
-      setAlarmMensaje("");
+      setAlarmIncId(null); setAlarmFecha(""); setAlarmMensaje("");
       loadData();
     } catch { toast.error("Error"); }
   };
@@ -209,6 +222,21 @@ export default function IncidenciasPage() {
       await supabase.from("recordatorios_incidencia").delete().eq("id", id);
       loadData();
     } catch { toast.error("Error"); }
+  };
+
+  const addComment = async (incId: string) => {
+    if (!newComment.trim()) return;
+    try {
+      await supabase.from("comentarios_incidencia").insert({
+        incidencia_id: incId,
+        hotel_id: hotelId!,
+        autor: usuario?.id ?? null,
+        texto: newComment.trim(),
+      });
+      setNewComment("");
+      loadData();
+      toast.success("Nota añadida");
+    } catch { toast.error("Error al añadir nota"); }
   };
 
   const toggleExpand = (inc: Incidencia) => {
@@ -221,11 +249,14 @@ export default function IncidenciasPage() {
       setEditPrioridad(inc.prioridad);
       setEditDept(inc.departamento);
       setEditAsignado(inc.asignado_a ?? "");
+      setNewComment("");
     }
   };
 
   const filtered = incidencias.filter((i) => {
-    if (filterEstado !== "all" && i.estado !== filterEstado) return false;
+    if (filterEstado === "activas" && i.estado === "cerrada") return false;
+    if (filterEstado === "archivadas" && i.estado !== "cerrada") return false;
+    if (filterEstado !== "all" && filterEstado !== "activas" && filterEstado !== "archivadas" && i.estado !== filterEstado) return false;
     if (filterDept !== "all" && i.departamento !== filterDept) return false;
     return true;
   });
@@ -282,10 +313,12 @@ export default function IncidenciasPage() {
 
       <div className="flex gap-2 flex-wrap">
         <Select value={filterEstado} onValueChange={setFilterEstado}>
-          <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue placeholder="Estado" /></SelectTrigger>
+          <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            {ESTADOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+            <SelectItem value="activas">Activas</SelectItem>
+            <SelectItem value="archivadas">Archivadas</SelectItem>
+            <SelectItem value="all">Todas</SelectItem>
+            {ESTADOS.filter(e => e.value !== "cerrada").map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterDept} onValueChange={setFilterDept}>
@@ -297,7 +330,6 @@ export default function IncidenciasPage() {
         </Select>
       </div>
 
-      {/* Alarm dialog */}
       <Dialog open={!!alarmIncId} onOpenChange={(open) => !open && setAlarmIncId(null)}>
         <DialogContent className="max-w-xs">
           <DialogHeader><DialogTitle className="text-sm">Añadir recordatorio</DialogTitle></DialogHeader>
@@ -320,11 +352,11 @@ export default function IncidenciasPage() {
             const asignado = usuarios.find((u) => u.id === inc.asignado_a);
             const isExpanded = expandedId === inc.id;
             const incRecordatorios = recordatorios[inc.id] ?? [];
+            const incComentarios = comentarios[inc.id] ?? [];
 
             return (
-              <Card key={inc.id} className="bg-card/60 backdrop-blur-sm border-border/50 overflow-hidden">
+              <Card key={inc.id} className={`bg-card/60 backdrop-blur-sm border-border/50 overflow-hidden ${inc.estado === "cerrada" ? "opacity-60" : ""}`}>
                 <CardContent className="p-3">
-                  {/* Header row - always visible */}
                   <div className="flex items-start justify-between gap-2 cursor-pointer" onClick={() => toggleExpand(inc)}>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -341,53 +373,101 @@ export default function IncidenciasPage() {
                         <Badge variant="outline" className="text-[10px] h-5">{inc.prioridad}</Badge>
                         {asignado && <span className="text-[10px] text-muted-foreground">→ {asignado.nombre}</span>}
                         {incRecordatorios.length > 0 && <Bell className="w-3 h-3 text-primary" />}
+                        {incComentarios.length > 0 && (
+                          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                            <MessageSquare className="w-3 h-3" /> {incComentarios.length}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <Select value={inc.estado} onValueChange={(v) => { v && updateEstado(inc.id, v as Estado); }}>
-                        <SelectTrigger className="h-7 w-[100px] text-[11px]" onClick={(e) => e.stopPropagation()}>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ESTADOS.map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      {inc.estado !== "cerrada" && (
+                        <Select value={inc.estado} onValueChange={(v) => { v && updateEstado(inc.id, v as Estado); }}>
+                          <SelectTrigger className="h-7 w-[100px] text-[11px]" onClick={(e) => e.stopPropagation()}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ESTADOS.filter(e => e.value !== "cerrada").map((e) => <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {inc.estado === "cerrada" && (
+                        <Badge variant="secondary" className="text-[10px]">Archivada</Badge>
+                      )}
                       {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                     </div>
                   </div>
 
-                  {/* Expanded edit panel */}
                   {isExpanded && (
-                    <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
-                      <div className="space-y-1">
-                        <Label className="text-[11px]">Título</Label>
-                        <Input value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} className="h-8 text-sm" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[11px]">Descripción</Label>
-                        <Textarea value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} rows={2} className="text-sm" />
-                      </div>
-                      <div className="grid grid-cols-3 gap-2">
-                        <div className="space-y-1">
-                          <Label className="text-[11px]">Prioridad</Label>
-                          <Select value={editPrioridad} onValueChange={(v) => setEditPrioridad(v as Prioridad)}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>{PRIORIDADES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[11px]">Depto</Label>
-                          <Select value={editDept} onValueChange={setEditDept}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                            <SelectContent>{DEPARTAMENTOS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-[11px]">Asignado</Label>
-                          <Select value={editAsignado} onValueChange={setEditAsignado}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                            <SelectContent>{usuarios.map((u) => <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>)}</SelectContent>
-                          </Select>
+                    <div className="mt-3 pt-3 border-t border-border/50 space-y-3">
+                      {inc.estado !== "cerrada" && (
+                        <>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Título</Label>
+                            <Input value={editTitulo} onChange={(e) => setEditTitulo(e.target.value)} className="h-8 text-sm" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-[11px]">Descripción</Label>
+                            <Textarea value={editDescripcion} onChange={(e) => setEditDescripcion(e.target.value)} rows={2} className="text-sm" />
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="space-y-1">
+                              <Label className="text-[11px]">Prioridad</Label>
+                              <Select value={editPrioridad} onValueChange={(v) => setEditPrioridad(v as Prioridad)}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>{PRIORIDADES.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px]">Depto</Label>
+                              <Select value={editDept} onValueChange={setEditDept}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>{DEPARTAMENTOS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-[11px]">Asignado</Label>
+                              <Select value={editAsignado} onValueChange={setEditAsignado}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                                <SelectContent>{usuarios.map((u) => <SelectItem key={u.id} value={u.id}>{u.nombre}</SelectItem>)}</SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Notas / Comentarios */}
+                      <div className="space-y-2">
+                        <Label className="text-[11px] font-medium flex items-center gap-1">
+                          <MessageSquare className="w-3 h-3" /> Notas de seguimiento
+                        </Label>
+                        {incComentarios.length > 0 && (
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {incComentarios.map((c) => {
+                              const autorUser = usuarios.find(u => u.id === c.autor);
+                              return (
+                                <div key={c.id} className="bg-muted/50 rounded px-2 py-1.5 text-[11px]">
+                                  <div className="flex items-center justify-between mb-0.5">
+                                    <span className="font-medium">{autorUser?.nombre ?? "Sistema"}</span>
+                                    <span className="text-muted-foreground">{new Date(c.creado_en).toLocaleString("es", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                                  </div>
+                                  <p>{c.texto}</p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <div className="flex gap-1">
+                          <Input
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="Añadir nota de seguimiento..."
+                            className="h-8 text-xs flex-1"
+                            onKeyDown={(e) => e.key === "Enter" && addComment(inc.id)}
+                          />
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => addComment(inc.id)}>
+                            <Send className="w-3 h-3" />
+                          </Button>
                         </div>
                       </div>
 
@@ -407,11 +487,18 @@ export default function IncidenciasPage() {
                         </div>
                       )}
 
-                      <div className="flex gap-2">
-                        <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => saveEdit(inc.id)}>Guardar</Button>
+                      <div className="flex gap-2 flex-wrap">
+                        {inc.estado !== "cerrada" && (
+                          <Button size="sm" className="flex-1 h-8 text-xs" onClick={() => saveEdit(inc.id)}>Guardar</Button>
+                        )}
                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAlarmIncId(inc.id)}>
                           <Bell className="w-3 h-3 mr-1" /> Alarma
                         </Button>
+                        {inc.estado === "resuelta" && (
+                          <Button size="sm" variant="secondary" className="h-8 text-xs" onClick={() => archivar(inc.id)}>
+                            <Archive className="w-3 h-3 mr-1" /> Archivar
+                          </Button>
+                        )}
                         {isAdmin && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
