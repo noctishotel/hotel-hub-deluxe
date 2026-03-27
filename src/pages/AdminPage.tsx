@@ -330,73 +330,109 @@ function TemaTab() {
           { onConflict: "hotel_id,clave" }
         );
       }
-      toast.success("Guardar tema");
+      applyTheme(config);
+      toast.success("Tema guardado");
     } catch (err) {
-      toast.error("Error");
+      toast.error("Error al guardar");
     } finally {
       setSaving(false);
     }
   };
 
-  const colorFields = [
-    { key: "bg_color", label: "Fondo general", desc: "Color de fondo de toda la aplicación" },
-    { key: "foreground_color", label: "Texto principal", desc: "Color del texto general" },
-    { key: "card_bg", label: "Fondo de tarjetas", desc: "Color de fondo de cards, diálogos y paneles" },
-    { key: "card_fg", label: "Texto de tarjetas", desc: "Color del texto dentro de tarjetas" },
-    { key: "primary_color", label: "Color principal", desc: "Botones, enlaces activos y elementos de acción" },
-    { key: "primary_fg", label: "Texto sobre principal", desc: "Texto sobre elementos de color principal" },
-    { key: "secondary_color", label: "Color secundario", desc: "Fondos secundarios y elementos de soporte" },
-    { key: "muted_color", label: "Color atenuado", desc: "Fondos suaves para zonas secundarias" },
-    { key: "muted_fg", label: "Texto atenuado", desc: "Texto de baja prioridad o subtítulos" },
-    { key: "accent_color", label: "Color acento", desc: "Acentos visuales y elementos destacados" },
-    { key: "border_color", label: "Bordes", desc: "Color de los bordes y separadores" },
-    { key: "sidebar_bg", label: "Fondo sidebar", desc: "Color del menú lateral de navegación" },
-    { key: "topbar_bg", label: "Fondo barra superior", desc: "Color de la barra de navegación superior" },
-    { key: "tab_active_bg", label: "Pestaña activa (fondo)", desc: "Fondo de la pestaña seleccionada" },
-    { key: "tab_active_fg", label: "Pestaña activa (texto)", desc: "Texto de la pestaña seleccionada" },
-    { key: "destructive_color", label: "Color destructivo", desc: "Acciones peligrosas como eliminar" },
-    { key: "success_color", label: "Color éxito", desc: "Indicadores de éxito y completado" },
-    { key: "warning_color", label: "Color advertencia", desc: "Alertas y avisos" },
-  ];
+  const applyPreset = (preset: typeof PALETTE_PRESETS[0]) => {
+    const merged = { ...config, ...preset.values };
+    setConfig(merged);
+    applyTheme(merged);
+    toast.success(`Paleta "${preset.name}" aplicada`);
+  };
+
+  const resetTheme = () => {
+    setConfig({ ...DEFAULT_THEME });
+    applyTheme(DEFAULT_THEME);
+    toast.success("Valores por defecto restaurados");
+  };
+
+  // Group color fields
+  const groups = COLOR_FIELDS.reduce((acc, field) => {
+    if (!acc[field.group]) acc[field.group] = [];
+    acc[field.group].push(field);
+    return acc;
+  }, {} as Record<string, typeof COLOR_FIELDS>);
 
   return (
     <div className="space-y-4 mt-4">
+      {/* Palette presets */}
       <Card className="bg-card/60 backdrop-blur-sm border-border/50">
-        <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Colores</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {colorFields.map((field) => (
-            <div key={field.key} className="flex gap-3 items-center">
-              <input
-                type="color"
-                value={config[field.key] || "#000000"}
-                onChange={(e) => updateConfig(field.key, e.target.value)}
-                className="w-8 h-8 rounded-lg border border-border cursor-pointer shrink-0"
-              />
-              <div className="min-w-0">
-                <p className="text-[13px] font-medium text-foreground">{field.label}</p>
-                <p className="text-[11px] text-muted-foreground">{field.desc}</p>
-              </div>
-            </div>
-          ))}
+        <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Palette className="w-4 h-4" /> Paletas predefinidas</CardTitle></CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {PALETTE_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => applyPreset(preset)}
+                className="text-left p-3 rounded-lg border border-border hover:border-foreground/20 transition-all group"
+              >
+                <div className="flex gap-1 mb-2">
+                  {preset.preview.map((color, i) => (
+                    <div key={i} className="w-5 h-5 rounded-full border border-border/50" style={{ backgroundColor: color }} />
+                  ))}
+                </div>
+                <p className="text-[13px] font-medium">{preset.name}</p>
+                <p className="text-[11px] text-muted-foreground">{preset.desc}</p>
+              </button>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
+      {/* Color fields by group */}
+      {Object.entries(groups).map(([groupName, fields]) => (
+        <Card key={groupName} className="bg-card/60 backdrop-blur-sm border-border/50">
+          <CardHeader><CardTitle className="text-sm">{groupName}</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {fields.map((field) => (
+              <div key={field.key} className="flex gap-3 items-center">
+                <input
+                  type="color"
+                  value={config[field.key] || DEFAULT_THEME[field.key] || "#000000"}
+                  onChange={(e) => updateConfig(field.key, e.target.value)}
+                  className="w-8 h-8 rounded-lg border border-border cursor-pointer shrink-0"
+                />
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium text-foreground">{field.label}</p>
+                  <p className="text-[11px] text-muted-foreground">{field.desc}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
+
+      {/* Typography */}
       <Card className="bg-card/60 backdrop-blur-sm border-border/50">
         <CardHeader><CardTitle className="text-sm flex items-center gap-2"><Type className="w-4 h-4" /> Tipografía</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div>
             <Label className="text-[13px] font-medium">Fuente de títulos</Label>
-            <Input value={config.font_heading || ""} onChange={(e) => updateConfig("font_heading", e.target.value)} className="h-10 bg-card/60" placeholder="Inter" />
+            <Input value={config.heading_font || ""} onChange={(e) => updateConfig("heading_font", e.target.value)} className="h-10" placeholder="Inter" />
+          </div>
+          <div>
+            <Label className="text-[13px] font-medium">Fuente del cuerpo</Label>
+            <Input value={config.body_font || ""} onChange={(e) => updateConfig("body_font", e.target.value)} className="h-10" placeholder="Inter" />
           </div>
           <div>
             <Label className="text-[13px] font-medium">Tamaño de texto</Label>
-            <Input type="range" min="12" max="18" value={config.font_size || "14"} onChange={(e) => updateConfig("font_size", e.target.value)} className="flex-1 accent-primary" />
-            <span className="text-[11px] text-muted-foreground w-12 tabular-nums">{config.font_size || 14}px</span>
+            <div className="flex items-center gap-3">
+              <input type="range" min="12" max="22" value={config.font_size || "16"} onChange={(e) => updateConfig("font_size", e.target.value)} className="flex-1 accent-primary" />
+              <span className="text-[11px] text-muted-foreground w-12 tabular-nums">{config.font_size || 16}px</span>
+            </div>
           </div>
           <div>
             <Label className="text-[13px] font-medium">Radio de bordes</Label>
-            <Input type="range" min="0" max="20" value={config.border_radius || "10"} onChange={(e) => updateConfig("border_radius", e.target.value)} className="h-10 bg-card/60" />
-            <p className="text-[11px] text-muted-foreground">Redondez de botones, tarjetas e inputs (0 = cuadrado, 20 = muy redondeado)</p>
+            <div className="flex items-center gap-3">
+              <input type="range" min="0" max="20" value={config.border_radius || "10"} onChange={(e) => updateConfig("border_radius", e.target.value)} className="flex-1 accent-primary" />
+              <span className="text-[11px] text-muted-foreground w-12 tabular-nums">{config.border_radius || 10}px</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -405,7 +441,7 @@ function TemaTab() {
         <Button onClick={saveTheme} disabled={saving} className="flex-1 h-10">
           {saving ? "Guardando..." : "Guardar tema"}
         </Button>
-        <Button variant="outline" className="h-10 gap-1.5" onClick={() => { setConfig({}); toast.success("Restaurar valores por defecto"); }}>
+        <Button variant="outline" className="h-10 gap-1.5" onClick={resetTheme}>
           Reset
         </Button>
       </div>
