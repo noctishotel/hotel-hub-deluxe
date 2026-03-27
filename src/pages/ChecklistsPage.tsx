@@ -104,6 +104,12 @@ export default function ChecklistsPage() {
   const [selectedDept, setSelectedDept] = useState<string>(currentDept);
 
   useEffect(() => {
+    if (usuario?.departamento && !isSuperAdmin) {
+      setSelectedDept(usuario.departamento);
+    }
+  }, [usuario?.departamento]);
+
+  useEffect(() => {
     if (hotelId) loadData();
   }, [hotelId, selectedDept]);
 
