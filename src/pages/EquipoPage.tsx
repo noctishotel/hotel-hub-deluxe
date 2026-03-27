@@ -22,7 +22,7 @@ interface UsuarioItem {
   auth_id: string | null;
 }
 
-const DEPARTAMENTOS = [
+const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
   { value: "fyb", label: "F&B" },
@@ -39,6 +39,7 @@ const ROLES = [
 
 export default function EquipoPage() {
   const { usuario, hotelId } = useAuth();
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || usuario?.rol === "super_admin");
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
