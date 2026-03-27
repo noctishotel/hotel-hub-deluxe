@@ -28,7 +28,8 @@ export default function PanelPage() {
   const [checklistDone, setChecklistDone] = useState(0);
   const [deptProgress, setDeptProgress] = useState<DeptProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const isSuperAdmin = usuario?.rol === "super_admin";
+  const role = usuario?.rol ?? null;
+  const isSuperAdmin = role === "super_admin";
 
   const today = new Date();
   const dateStr = today.toLocaleDateString("es-ES", {
@@ -39,9 +40,17 @@ export default function PanelPage() {
   });
 
   useEffect(() => {
-    if (!hotelId) return;
+    if (!hotelId || !role) {
+      setStats({ abiertas: 0, alertas: 0, equipo: 0 });
+      setChecklistTotal(0);
+      setChecklistDone(0);
+      setDeptProgress([]);
+      return;
+    }
+
+    setLoading(true);
     loadAll();
-  }, [hotelId]);
+  }, [hotelId, role]);
 
   const loadAll = async () => {
     try {
@@ -105,10 +114,12 @@ export default function PanelPage() {
       });
 
       setDeptProgress(
-        Object.entries(deptMap).map(([dept, v]) => ({
-          departamento: dept,
-          ...v,
-        }))
+        Object.entries(deptMap)
+          .map(([dept, v]) => ({
+            departamento: dept,
+            ...v,
+          }))
+          .filter((dept) => dept.departamento !== "administracion" || isSuperAdmin)
       );
     } catch (err) {
       console.error(err);
@@ -212,7 +223,9 @@ export default function PanelPage() {
             {deptProgress.length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay tareas configuradas</p>
             ) : (
-              deptProgress.map((dept) => {
+               deptProgress
+                .filter((dept) => dept.departamento !== "administracion" || isSuperAdmin)
+                .map((dept) => {
                 const pct = dept.total > 0 ? Math.round((dept.completed / dept.total) * 100) : 0;
                 return (
                   <div
