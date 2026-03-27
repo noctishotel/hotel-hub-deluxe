@@ -38,12 +38,15 @@ const mainNav = [
   { to: "/agenda", label: "Agenda", icon: Calendar },
 ];
 
-const adminNav: { to: string; label: string; icon: any; superOnly?: boolean }[] = [
-  { to: "/equipo", label: "Equipo", icon: Users, superOnly: true },
+const adminNav = [
   { to: "/informes", label: "Informes", icon: BarChart3 },
-  { to: "/admin", label: "Administración", icon: Settings, superOnly: true },
-  { to: "/hoteles", label: "Hoteles", icon: Hotel, superOnly: true },
   { to: "/historial-checklists", label: "Historial", icon: History },
+];
+
+const superAdminNav = [
+  { to: "/equipo", label: "Equipo", icon: Users },
+  { to: "/admin", label: "Administración", icon: Settings },
+  { to: "/hoteles", label: "Hoteles", icon: Hotel },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -52,8 +55,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const rolUsuario = usuario?.rol;
-  const isAdmin = !loading && (rolUsuario === "admin" || rolUsuario === "super_admin");
   const isSuperAdmin = !loading && rolUsuario === "super_admin";
+  const isAdmin = !loading && (rolUsuario === "admin" || isSuperAdmin);
 
   const handleSignOut = async () => {
     await signOut();
@@ -102,7 +105,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {adminNav.filter((item) => item.superOnly !== true || isSuperAdmin).map((item) => (
+                    {adminNav.map((item) => (
+                      <SidebarMenuItem key={item.to}>
+                        <SidebarMenuButton
+                          onClick={() => navigate(item.to)}
+                          isActive={location.pathname === item.to}
+                          style={{ fontSize: "var(--sidebar-item-size)" }}
+                          className={location.pathname === item.to ? "bg-[hsl(var(--tab-active-bg))] text-[hsl(var(--tab-active-fg))]" : ""}
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )}
+            {isSuperAdmin && (
+              <SidebarGroup>
+                <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
+                  Super admin
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {superAdminNav.map((item) => (
                       <SidebarMenuItem key={item.to}>
                         <SidebarMenuButton
                           onClick={() => navigate(item.to)}

@@ -28,6 +28,7 @@ export default function PanelPage() {
   const [checklistDone, setChecklistDone] = useState(0);
   const [deptProgress, setDeptProgress] = useState<DeptProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const isSuperAdmin = usuario?.rol === "super_admin";
 
   const today = new Date();
   const dateStr = today.toLocaleDateString("es-ES", {
@@ -93,7 +94,6 @@ export default function PanelPage() {
       setChecklistDone(completedIds.size);
 
       // Department progress (exclude direccion; exclude administracion for non-super_admin)
-      const isSuperAdmin = usuario?.rol === "super_admin";
       const deptMap: Record<string, { total: number; completed: number }> = {};
       (tareas ?? []).forEach((t) => {
         if (t.departamento === "direccion") return;
@@ -146,7 +146,10 @@ export default function PanelPage() {
       fallback: "hsl(var(--success))",
       onClick: () => navigate("/alarmas"),
     },
-    {
+  ];
+
+  if (isSuperAdmin) {
+    kpiCards.push({
       title: "Equipo",
       value: stats.equipo,
       subtitle: "activos",
@@ -154,8 +157,8 @@ export default function PanelPage() {
       colorVar: "--card4-color",
       fallback: "hsl(var(--muted-foreground))",
       onClick: () => navigate("/equipo"),
-    },
-  ];
+    });
+  }
 
   return (
     <div className="p-4 md:p-6 space-y-6 animate-fade-in">
