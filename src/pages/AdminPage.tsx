@@ -391,7 +391,7 @@ function TemaTab() {
         <Card key={groupName} className="bg-card/60 backdrop-blur-sm border-border/50">
           <CardHeader><CardTitle className="text-sm">{groupName}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {fields.map((field) => (
+            {(fields as typeof COLOR_FIELDS).map((field) => (
               <div key={field.key} className="flex gap-3 items-center">
                 <input
                   type="color"
