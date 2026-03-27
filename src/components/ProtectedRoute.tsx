@@ -4,9 +4,10 @@ import { useAuth } from "@/hooks/useAuth";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   adminOnly?: boolean;
+  superOnly?: boolean;
 }
 
-const ProtectedRoute = ({ children, adminOnly }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, adminOnly, superOnly }: ProtectedRouteProps) => {
   const { session, usuario, loading } = useAuth();
 
   if (loading) {
@@ -19,6 +20,10 @@ const ProtectedRoute = ({ children, adminOnly }: ProtectedRouteProps) => {
 
   if (!session || !usuario) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (superOnly && usuario.rol !== "super_admin") {
+    return <Navigate to="/panel" replace />;
   }
 
   if (adminOnly && usuario.rol === "empleado") {
