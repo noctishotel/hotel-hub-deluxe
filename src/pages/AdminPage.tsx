@@ -340,12 +340,23 @@ function TemaTab() {
 
   const colorFields = [
     { key: "bg_color", label: "Fondo general", desc: "Color de fondo de toda la aplicación" },
-    { key: "topbar_bg", label: "Fondo barra superior", desc: "Color de la barra de navegación superior" },
-    { key: "sidebar_bg", label: "Fondo sidebar", desc: "Color del menú lateral de navegación" },
-    { key: "card_bg", label: "Fondo secundario", desc: "Color de las cards, diálogos y paneles elevados" },
+    { key: "foreground_color", label: "Texto principal", desc: "Color del texto general" },
+    { key: "card_bg", label: "Fondo de tarjetas", desc: "Color de fondo de cards, diálogos y paneles" },
+    { key: "card_fg", label: "Texto de tarjetas", desc: "Color del texto dentro de tarjetas" },
     { key: "primary_color", label: "Color principal", desc: "Botones, enlaces activos y elementos de acción" },
-    { key: "tab_active_bg", label: "Pestaña activa (fondo)", desc: "Fondo de la pestaña o tab seleccionada" },
-    { key: "tab_active_fg", label: "Pestaña activa (texto)", desc: "Texto de la pestaña o tab seleccionada" },
+    { key: "primary_fg", label: "Texto sobre principal", desc: "Texto sobre elementos de color principal" },
+    { key: "secondary_color", label: "Color secundario", desc: "Fondos secundarios y elementos de soporte" },
+    { key: "muted_color", label: "Color atenuado", desc: "Fondos suaves para zonas secundarias" },
+    { key: "muted_fg", label: "Texto atenuado", desc: "Texto de baja prioridad o subtítulos" },
+    { key: "accent_color", label: "Color acento", desc: "Acentos visuales y elementos destacados" },
+    { key: "border_color", label: "Bordes", desc: "Color de los bordes y separadores" },
+    { key: "sidebar_bg", label: "Fondo sidebar", desc: "Color del menú lateral de navegación" },
+    { key: "topbar_bg", label: "Fondo barra superior", desc: "Color de la barra de navegación superior" },
+    { key: "tab_active_bg", label: "Pestaña activa (fondo)", desc: "Fondo de la pestaña seleccionada" },
+    { key: "tab_active_fg", label: "Pestaña activa (texto)", desc: "Texto de la pestaña seleccionada" },
+    { key: "destructive_color", label: "Color destructivo", desc: "Acciones peligrosas como eliminar" },
+    { key: "success_color", label: "Color éxito", desc: "Indicadores de éxito y completado" },
+    { key: "warning_color", label: "Color advertencia", desc: "Alertas y avisos" },
   ];
 
   return (
