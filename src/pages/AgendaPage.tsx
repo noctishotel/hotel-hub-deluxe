@@ -77,6 +77,7 @@ export default function AgendaPage() {
   const today = new Date().toISOString().split("T")[0];
 
   // Department selection: super admin can switch, others fixed to their own
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [selectedDept, setSelectedDept] = useState<string>("");
 
   useEffect(() => {

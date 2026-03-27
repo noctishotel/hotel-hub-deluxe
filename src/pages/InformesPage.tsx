@@ -67,6 +67,7 @@ export default function InformesPage() {
   const [periodoChecklists, setPeriodoChecklists] = useState("7");
 
   const isSuperAdmin = usuario?.rol === "super_admin";
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
 
   useEffect(() => {
     if (hotelId) loadData();

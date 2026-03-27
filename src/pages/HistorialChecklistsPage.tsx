@@ -38,7 +38,9 @@ interface Usuario {
 }
 
 export default function HistorialChecklistsPage() {
-  const { hotelId } = useAuth();
+  const { hotelId, usuario } = useAuth();
+  const isSuperAdmin = usuario?.rol === "super_admin";
+  const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [tareas, setTareas] = useState<Record<string, Tarea>>({});
   const [usuarios, setUsuarios] = useState<Record<string, Usuario>>({});
