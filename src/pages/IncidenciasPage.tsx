@@ -92,7 +92,7 @@ export default function IncidenciasPage() {
 
   const [newTitulo, setNewTitulo] = useState("");
   const [newDescripcion, setNewDescripcion] = useState("");
-  const [newDepartamento, setNewDepartamento] = useState("recepcion");
+  const [newDepartamento, setNewDepartamento] = useState(isSuperAdmin ? "recepcion" : (usuario?.departamento ?? "recepcion"));
   const [newPrioridad, setNewPrioridad] = useState<Prioridad>("media");
   const [newAsignado, setNewAsignado] = useState("");
 
@@ -147,11 +147,13 @@ export default function IncidenciasPage() {
 
   const createIncidencia = async () => {
     if (!newTitulo.trim()) { toast.error("Título obligatorio"); return; }
+    // Force department from user profile for non-super_admin
+    const departamento = isSuperAdmin ? newDepartamento : (usuario?.departamento ?? "recepcion");
     try {
       const { error } = await supabase.from("incidencias").insert({
         titulo: newTitulo,
         descripcion: newDescripcion || null,
-        departamento: newDepartamento as any,
+        departamento: departamento as any,
         prioridad: newPrioridad,
         asignado_a: newAsignado || null,
         hotel_id: hotelId!,
@@ -182,12 +184,14 @@ export default function IncidenciasPage() {
   };
 
   const saveEdit = async (id: string) => {
+    // Force department from user profile for non-super_admin
+    const departamento = isSuperAdmin ? editDept : (usuario?.departamento ?? editDept);
     try {
       await supabase.from("incidencias").update({
         titulo: editTitulo,
         descripcion: editDescripcion || null,
         prioridad: editPrioridad,
-        departamento: editDept as any,
+        departamento: departamento as any,
         asignado_a: editAsignado || null,
       }).eq("id", id);
       await supabase.from("actividad_incidencia").insert({
@@ -196,7 +200,7 @@ export default function IncidenciasPage() {
       });
       setIncidencias((prev) => prev.map((i) => i.id === id ? {
         ...i, titulo: editTitulo, descripcion: editDescripcion || null,
-        prioridad: editPrioridad, departamento: editDept, asignado_a: editAsignado || null,
+        prioridad: editPrioridad, departamento: departamento, asignado_a: editAsignado || null,
       } : i));
       toast.success("Incidencia actualizada");
     } catch { toast.error("Error"); }
@@ -291,10 +295,16 @@ export default function IncidenciasPage() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <Label className="text-xs">Departamento</Label>
-                  <Select value={newDepartamento} onValueChange={setNewDepartamento}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>{DEPARTAMENTOS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
-                  </Select>
+                  {isSuperAdmin ? (
+                    <Select value={newDepartamento} onValueChange={setNewDepartamento}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>{DEPARTAMENTOS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="h-9 flex items-center px-3 rounded-md border border-input bg-muted text-sm text-muted-foreground">
+                      {ALL_DEPARTAMENTOS.find(d => d.value === usuario?.departamento)?.label ?? usuario?.departamento}
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Prioridad</Label>
@@ -430,10 +440,16 @@ export default function IncidenciasPage() {
                             </div>
                             <div className="space-y-1">
                               <Label className="text-[11px]">Depto</Label>
-                              <Select value={editDept} onValueChange={setEditDept}>
-                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                <SelectContent>{DEPARTAMENTOS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
-                              </Select>
+                              {isSuperAdmin ? (
+                                <Select value={editDept} onValueChange={setEditDept}>
+                                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectContent>{DEPARTAMENTOS.map((d) => <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>)}</SelectContent>
+                                </Select>
+                              ) : (
+                                <div className="h-8 flex items-center px-2 rounded-md border border-input bg-muted text-xs text-muted-foreground">
+                                  {ALL_DEPARTAMENTOS.find(d => d.value === usuario?.departamento)?.label ?? usuario?.departamento}
+                                </div>
+                              )}
                             </div>
                             <div className="space-y-1">
                               <Label className="text-[11px]">Asignado</Label>
