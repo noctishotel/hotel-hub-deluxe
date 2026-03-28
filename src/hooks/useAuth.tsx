@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      if (currentFetchId !== lastFetchId.current) return;
+      if (currentFetchId !== lastFetchId.current) return null;
 
       const nextUsuario = data as Usuario | null;
       setUsuario(nextUsuario);
@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error("Error fetching usuario:", err);
 
-      if (currentFetchId !== lastFetchId.current) return;
+      if (currentFetchId !== lastFetchId.current) return null;
 
       setUsuario(null);
       return null;
