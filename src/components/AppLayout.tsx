@@ -81,7 +81,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent>
             {visibleMainNav.length > 0 && (
               <SidebarGroup>
-                <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
+                <SidebarGroupLabel className="uppercase tracking-widest text-[10px] text-sidebar-foreground/40 font-semibold">
                   Navegación
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -105,7 +105,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
             {visibleAdminNav.length > 0 && (
               <SidebarGroup>
-                <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
+                <SidebarGroupLabel className="uppercase tracking-widest text-[10px] text-sidebar-foreground/40 font-semibold">
                   Gestión
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
@@ -129,8 +129,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             )}
             {visibleSuperAdminNav.length > 0 && (
               <SidebarGroup>
-                <SidebarGroupLabel style={{ fontSize: "var(--sidebar-group-size)" }}>
-                  Super admin
+                <SidebarGroupLabel className="uppercase tracking-widest text-[10px] text-sidebar-foreground/40 font-semibold">
+                  Super Admin
                 </SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
