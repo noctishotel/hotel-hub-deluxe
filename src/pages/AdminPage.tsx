@@ -54,10 +54,18 @@ interface ConfigItem {
 }
 
 export default function AdminPage() {
-  const { usuario } = useAuth();
+  const { usuario, loading } = useAuth();
   const [activeTab, setActiveTab] = useState("plantillas");
 
-  if (usuario && usuario.rol !== "super_admin") {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-svh">
+        <p className="text-muted-foreground">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!usuario || usuario.rol !== "super_admin") {
     return <Navigate to="/panel" replace />;
   }
 

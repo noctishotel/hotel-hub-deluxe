@@ -39,7 +39,7 @@ interface Usuario {
 }
 
 export default function HistorialChecklistsPage() {
-  const { hotelId, usuario } = useAuth();
+  const { hotelId, usuario, loading } = useAuth();
   const isSuperAdmin = usuario?.rol === "super_admin";
   const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [registros, setRegistros] = useState<Registro[]>([]);
@@ -53,7 +53,15 @@ export default function HistorialChecklistsPage() {
     if (hotelId && isSuperAdmin) loadData();
   }, [hotelId, filterDate, isSuperAdmin]);
 
-  if (usuario && !isSuperAdmin) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-svh">
+        <p className="text-muted-foreground">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!usuario || !isSuperAdmin) {
     return <Navigate to="/panel" replace />;
   }
 

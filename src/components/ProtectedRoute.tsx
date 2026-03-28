@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, adminOnly, superOnly }: ProtectedRouteProps) => {
   const { session, usuario, loading, refreshUsuario } = useAuth();
   const location = useLocation();
-  const requiresRoleVerification = superOnly || adminOnly;
+  const requiresRoleVerification = Boolean(superOnly || adminOnly);
   const [routeChecking, setRouteChecking] = useState<boolean>(requiresRoleVerification);
   const [verifiedRole, setVerifiedRole] = useState<string | null>(requiresRoleVerification ? null : usuario?.rol ?? null);
 
