@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -49,8 +50,12 @@ export default function HistorialChecklistsPage() {
   const [filterDept, setFilterDept] = useState("all");
 
   useEffect(() => {
-    if (hotelId) loadData();
-  }, [hotelId, filterDate]);
+    if (hotelId && isSuperAdmin) loadData();
+  }, [hotelId, filterDate, isSuperAdmin]);
+
+  if (usuario && !isSuperAdmin) {
+    return <Navigate to="/panel" replace />;
+  }
 
   const loadData = async () => {
     setLoading(true);
