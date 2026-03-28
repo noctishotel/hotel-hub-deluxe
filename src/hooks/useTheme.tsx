@@ -227,12 +227,32 @@ export const PALETTE_PRESETS = [
   },
 ];
 
+const THEME_CACHE_KEY = "noctis_theme_cache";
+
+function getCachedTheme(): Record<string, string> | null {
+  try {
+    const raw = sessionStorage.getItem(THEME_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+function setCachedTheme(config: Record<string, string>) {
+  try { sessionStorage.setItem(THEME_CACHE_KEY, JSON.stringify(config)); } catch {}
+}
+
 export function useTheme() {
   const { hotelId } = useAuth();
   const [config, setConfig] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    // Apply cached theme immediately to avoid flash
+    const cached = getCachedTheme();
+    if (cached) {
+      setConfig(cached);
+      applyTheme(cached);
+    }
+
     if (!hotelId) return;
     loadTheme();
   }, [hotelId]);
@@ -250,6 +270,7 @@ export function useTheme() {
       });
       setConfig(c);
       applyTheme(c);
+      setCachedTheme(c);
     } catch (err) {
       console.error("Error loading theme:", err);
     } finally {
