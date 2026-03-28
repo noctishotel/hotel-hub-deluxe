@@ -131,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     resetAuthState();
     setLoading(false);
+    try { sessionStorage.removeItem("noctis_user_profile"); sessionStorage.removeItem("noctis_theme_cache"); } catch {}
   }, [resetAuthState]);
 
   const value = useMemo(() => ({
