@@ -92,7 +92,7 @@ export default function IncidenciasPage() {
 
   const [newTitulo, setNewTitulo] = useState("");
   const [newDescripcion, setNewDescripcion] = useState("");
-  const [newDepartamento, setNewDepartamento] = useState(isSuperAdmin ? "recepcion" : (usuario?.departamento ?? "recepcion"));
+  const [newDepartamento, setNewDepartamento] = useState<string>(isSuperAdmin ? "recepcion" : (usuario?.departamento ?? "recepcion"));
   const [newPrioridad, setNewPrioridad] = useState<Prioridad>("media");
   const [newAsignado, setNewAsignado] = useState("");
 
