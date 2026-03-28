@@ -40,13 +40,13 @@ const mainNav = [
 
 const adminNav = [
   { to: "/informes", label: "Informes", icon: BarChart3 },
-  { to: "/historial-checklists", label: "Historial", icon: History },
 ];
 
 const superAdminNav = [
   { to: "/equipo", label: "Equipo", icon: Users },
   { to: "/admin", label: "Administración", icon: Settings },
   { to: "/hoteles", label: "Hoteles", icon: Hotel },
+  { to: "/historial-checklists", label: "Historial", icon: History },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
