@@ -51,6 +51,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(!cachedProfile);
   const activeRequestRef = useRef(0);
 
+  const setUsuario = useCallback((u: Usuario | null) => {
+    setUsuarioState(u);
+    try {
+      if (u) sessionStorage.setItem("noctis_user_profile", JSON.stringify(u));
+      else sessionStorage.removeItem("noctis_user_profile");
+    } catch {}
+  }, []);
+
   const resetAuthState = useCallback(() => {
     setUsuario(null);
     setRole(null);
