@@ -12,8 +12,9 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children, adminOnly, superOnly }: ProtectedRouteProps) => {
   const { session, usuario, loading, refreshUsuario } = useAuth();
   const location = useLocation();
-  const [routeChecking, setRouteChecking] = useState(false);
-  const [verifiedRole, setVerifiedRole] = useState<string | null>(null);
+  const requiresRoleVerification = superOnly || adminOnly;
+  const [routeChecking, setRouteChecking] = useState<boolean>(requiresRoleVerification);
+  const [verifiedRole, setVerifiedRole] = useState<string | null>(requiresRoleVerification ? null : usuario?.rol ?? null);
 
   useEffect(() => {
     let alive = true;
@@ -26,7 +27,7 @@ const ProtectedRoute = ({ children, adminOnly, superOnly }: ProtectedRouteProps)
         return;
       }
 
-      if (!superOnly && !adminOnly) {
+      if (!requiresRoleVerification) {
         if (!alive) return;
         setVerifiedRole(usuario?.rol ?? null);
         setRouteChecking(false);
@@ -47,7 +48,7 @@ const ProtectedRoute = ({ children, adminOnly, superOnly }: ProtectedRouteProps)
     return () => {
       alive = false;
     };
-  }, [adminOnly, superOnly, location.pathname, session?.user?.id]);
+  }, [location.pathname, session?.user?.id, requiresRoleVerification, usuario?.rol, refreshUsuario]);
 
   if (loading || routeChecking) {
     return (
