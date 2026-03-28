@@ -45,8 +45,10 @@ const App = () => (
             <Route path="/informes" element={<ProtectedRoute adminOnly><AppLayout><InformesPage /></AppLayout></ProtectedRoute>} />
             <Route path="/agenda" element={<ProtectedRoute><AppLayout><AgendaPage /></AppLayout></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute superOnly><AppLayout><AdminPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/administracion" element={<ProtectedRoute superOnly><Navigate to="/admin" replace /></ProtectedRoute>} />
             <Route path="/hoteles" element={<ProtectedRoute superOnly><AppLayout><HotelesPage /></AppLayout></ProtectedRoute>} />
             <Route path="/historial-checklists" element={<ProtectedRoute superOnly><AppLayout><HistorialChecklistsPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/historial" element={<ProtectedRoute superOnly><Navigate to="/historial-checklists" replace /></ProtectedRoute>} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </AuthProvider>

@@ -20,6 +20,7 @@ interface AuthContextType {
   loading: boolean;
   hotelId: string | null;
   signOut: () => Promise<void>;
+  refreshUsuario: (authId?: string) => Promise<Usuario | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -66,13 +67,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUsuario = async (authId: string) => {
+  const fetchUsuario = async (authId: string, options?: { silent?: boolean }) => {
     const currentFetchId = ++lastFetchId.current;
+
+    if (!options?.silent) {
+      setLoading(true);
+    }
 
     try {
       const { data, error } = await supabase
         .from("usuarios")
-        .select("*")
+        .select("id, nombre, email, rol, departamento, hotel_id, activo, auth_id")
         .eq("auth_id", authId)
         .eq("activo", true)
         .order("created_at", { ascending: false })
@@ -83,18 +88,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (currentFetchId !== lastFetchId.current) return;
 
-      setUsuario(data as Usuario | null);
+      const nextUsuario = data as Usuario | null;
+      setUsuario(nextUsuario);
+      return nextUsuario;
     } catch (err) {
       console.error("Error fetching usuario:", err);
 
       if (currentFetchId !== lastFetchId.current) return;
 
       setUsuario(null);
+      return null;
     } finally {
-      if (currentFetchId === lastFetchId.current) {
+      if (!options?.silent && currentFetchId === lastFetchId.current) {
         setLoading(false);
       }
     }
+  };
+
+  const refreshUsuario = async (authId?: string) => {
+    const targetAuthId = authId ?? session?.user?.id ?? null;
+
+    if (!targetAuthId) {
+      setUsuario(null);
+      return null;
+    }
+
+    return fetchUsuario(targetAuthId, { silent: true });
   };
 
   const signOut = async () => {
@@ -106,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, usuario, loading, hotelId: usuario?.hotel_id ?? null, signOut }}>
+    <AuthContext.Provider value={{ session, user, usuario, loading, hotelId: usuario?.hotel_id ?? null, signOut, refreshUsuario }}>
       {children}
     </AuthContext.Provider>
   );
