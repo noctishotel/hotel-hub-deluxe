@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,11 +41,6 @@ interface Usuario {
 export default function HistorialChecklistsPage() {
   const { hotelId, usuario } = useAuth();
   const isSuperAdmin = usuario?.rol === "super_admin";
-
-  if (usuario && !isSuperAdmin) {
-    return <Navigate to="/panel" replace />;
-  }
-
   const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [tareas, setTareas] = useState<Record<string, Tarea>>({});
@@ -54,6 +48,10 @@ export default function HistorialChecklistsPage() {
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
   const [filterDept, setFilterDept] = useState("all");
+
+  if (usuario && !isSuperAdmin) {
+    return <Navigate to="/panel" replace />;
+  }
 
   useEffect(() => {
     if (hotelId) loadData();
