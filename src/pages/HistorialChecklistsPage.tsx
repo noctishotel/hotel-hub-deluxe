@@ -49,13 +49,13 @@ export default function HistorialChecklistsPage() {
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
   const [filterDept, setFilterDept] = useState("all");
 
+  useEffect(() => {
+    if (hotelId && isSuperAdmin) loadData();
+  }, [hotelId, filterDate, isSuperAdmin]);
+
   if (usuario && !isSuperAdmin) {
     return <Navigate to="/panel" replace />;
   }
-
-  useEffect(() => {
-    if (hotelId) loadData();
-  }, [hotelId, filterDate]);
 
   const loadData = async () => {
     setLoading(true);
