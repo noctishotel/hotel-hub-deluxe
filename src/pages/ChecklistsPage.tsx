@@ -86,7 +86,7 @@ export default function ChecklistsPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [registros, setRegistros] = useState<Set<string>>(new Set());
   const [pospuestas, setPospuestas] = useState<Set<string>>(new Set());
-  const [pospuestasDesdAyer, setPospuestasDesdAyer] = useState<Set<string>>(new Set());
+  const [pospuestasDesdAyer, setPospuestasDesdAyer] = useState<Map<string, string>>(new Map()); // tarea_id -> fecha_original
   const [loading, setLoading] = useState(true);
   const [editingTarea, setEditingTarea] = useState<Tarea | null>(null);
   const [editTitulo, setEditTitulo] = useState("");
@@ -121,7 +121,7 @@ export default function ChecklistsPage() {
         supabase.from("categorias_checklist").select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("activo", true).order("orden"),
         supabase.from("registros_checklist").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha", today),
         supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_original", today),
-        supabase.from("tareas_pospuestas").select("tarea_id").eq("hotel_id", hotelId!).eq("fecha_destino", today),
+        supabase.from("tareas_pospuestas").select("tarea_id, fecha_original").eq("hotel_id", hotelId!).eq("fecha_destino", today),
         supabase.from("notas_checklist" as any).select("*").eq("hotel_id", hotelId!).eq("departamento", selectedDept as any).eq("fecha", today).eq("usuario_id", usuario?.id).maybeSingle(),
       ]);
 
@@ -129,7 +129,11 @@ export default function ChecklistsPage() {
       setCategorias(categoriasRes.data ?? []);
       setRegistros(new Set((registrosRes.data ?? []).map((r: any) => r.tarea_id)));
       setPospuestas(new Set((pospuestasRes.data ?? []).map((p: any) => p.tarea_id)));
-      setPospuestasDesdAyer(new Set((pospuestasAyerRes.data ?? []).map((p: any) => p.tarea_id)));
+      const pospAyerMap = new Map<string, string>();
+      (pospuestasAyerRes.data ?? []).forEach((p: any) => {
+        pospAyerMap.set(p.tarea_id, p.fecha_original);
+      });
+      setPospuestasDesdAyer(pospAyerMap);
       if (notaRes.data) {
         setNotaExtra((notaRes.data as any).nota ?? "");
         setNotaExtraId((notaRes.data as any).id);
@@ -298,7 +302,11 @@ export default function ChecklistsPage() {
           const postponed = pospuestas.has(t.id);
           const wasFromYesterday = pospuestasDesdAyer.has(t.id);
           let status = checked ? "OK" : postponed ? "POSPUESTA" : "PENDIENTE";
-          if (wasFromYesterday && !checked) status += " (pendiente del dia anterior)";
+          if (wasFromYesterday && !checked) {
+            const orig = pospuestasDesdAyer.get(t.id);
+            const diffDays = orig ? Math.round((new Date(today).getTime() - new Date(orig).getTime()) / (1000 * 60 * 60 * 24)) : 1;
+            status += diffDays <= 1 ? " (pospuesta de ayer)" : ` (pospuesta de hace ${diffDays} días)`;
+          }
           section += `- ${t.titulo}: ${status}\n`;
         }
       }
@@ -465,8 +473,14 @@ export default function ChecklistsPage() {
         </div>
 
         {wasPostponedFromYesterday && !checked && (
-          <p className="ml-9 text-xs text-muted-foreground mt-0.5">
-            (No realizada el día anterior)
+          <p className="ml-9 text-xs text-warning mt-0.5 font-medium">
+            {(() => {
+              const originalDate = pospuestasDesdAyer.get(tarea.id);
+              if (!originalDate) return "Pospuesta";
+              const diffDays = Math.round((new Date(today).getTime() - new Date(originalDate).getTime()) / (1000 * 60 * 60 * 24));
+              if (diffDays <= 1) return "Pospuesta de ayer";
+              return `Pospuesta de hace ${diffDays} días`;
+            })()}
           </p>
         )}
 
