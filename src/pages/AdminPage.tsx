@@ -428,25 +428,44 @@ function TemaTab() {
         <CardContent className="space-y-3">
           <div>
             <Label className="text-[13px] font-medium">Fuente de títulos</Label>
-            <Input value={config.heading_font || ""} onChange={(e) => updateConfig("heading_font", e.target.value)} className="h-10" placeholder="Inter" />
+            <Select value={config.heading_font || "Inter"} onValueChange={(v) => { updateConfig("heading_font", v); applyTheme({ ...config, heading_font: v }); }}>
+              <SelectTrigger className="h-10"><SelectValue placeholder="Seleccionar fuente" /></SelectTrigger>
+              <SelectContent>
+                {FONT_OPTIONS.map((f) => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label className="text-[13px] font-medium">Fuente del cuerpo</Label>
-            <Input value={config.body_font || ""} onChange={(e) => updateConfig("body_font", e.target.value)} className="h-10" placeholder="Inter" />
+            <Select value={config.body_font || "Inter"} onValueChange={(v) => { updateConfig("body_font", v); applyTheme({ ...config, body_font: v }); }}>
+              <SelectTrigger className="h-10"><SelectValue placeholder="Seleccionar fuente" /></SelectTrigger>
+              <SelectContent>
+                {FONT_OPTIONS.map((f) => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label className="text-[13px] font-medium">Tamaño de texto</Label>
             <div className="flex items-center gap-3">
-              <input type="range" min="12" max="22" value={config.font_size || "16"} onChange={(e) => updateConfig("font_size", e.target.value)} className="flex-1 accent-primary" />
+              <input type="range" min="12" max="22" value={config.font_size || "16"} onChange={(e) => { updateConfig("font_size", e.target.value); applyTheme({ ...config, font_size: e.target.value }); }} className="flex-1 accent-primary" />
               <span className="text-[11px] text-muted-foreground w-12 tabular-nums">{config.font_size || 16}px</span>
             </div>
           </div>
           <div>
             <Label className="text-[13px] font-medium">Radio de bordes</Label>
             <div className="flex items-center gap-3">
-              <input type="range" min="0" max="20" value={config.border_radius || "10"} onChange={(e) => updateConfig("border_radius", e.target.value)} className="flex-1 accent-primary" />
+              <input type="range" min="0" max="20" value={config.border_radius || "10"} onChange={(e) => { updateConfig("border_radius", e.target.value); applyTheme({ ...config, border_radius: e.target.value }); }} className="flex-1 accent-primary" />
               <span className="text-[11px] text-muted-foreground w-12 tabular-nums">{config.border_radius || 10}px</span>
             </div>
+          </div>
+          <div className="pt-2 p-3 rounded-lg border border-border/50 bg-muted/30">
+            <p className="text-xs text-muted-foreground mb-1">Vista previa</p>
+            <p className="text-lg" style={{ fontFamily: `'${config.heading_font || "Inter"}', sans-serif` }}>Título de ejemplo</p>
+            <p className="text-sm" style={{ fontFamily: `'${config.body_font || "Inter"}', sans-serif` }}>Este es un texto de cuerpo para previsualizar la fuente seleccionada.</p>
           </div>
         </CardContent>
       </Card>
