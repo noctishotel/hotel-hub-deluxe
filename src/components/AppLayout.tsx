@@ -159,9 +159,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </SidebarFooter>
         </Sidebar>
         <SidebarInset>
-          <header className="sticky top-0 z-30 flex h-12 items-center border-b bg-background px-2 md:hidden">
-            <SidebarTrigger />
-            <span className="ml-2 text-sm font-semibold text-foreground">Noctis Hub</span>
+          {/* Top bar — always visible */}
+          <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b px-3 md:px-5"
+            style={{ background: "#F5F0E8" }}>
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="md:hidden" />
+              <button
+                onClick={() => navigate("/panel")}
+                className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+              >
+                <div className="w-9 h-9 rounded-full overflow-hidden bg-[#F5F0E8] border border-border/30 flex items-center justify-center shrink-0">
+                  <img src={noctisLogo} alt="Noctis Hub" width={28} height={28} className="object-contain" />
+                </div>
+                <span className="text-sm font-semibold text-foreground hidden sm:inline">Noctis Hub</span>
+              </button>
+            </div>
+            <div className="flex items-center gap-3">
+              {!loading && usuario && (
+                <span className="text-sm font-semibold text-foreground">{usuario.nombre}</span>
+              )}
+              <button
+                onClick={handleSignOut}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cerrar sesión
+              </button>
+            </div>
           </header>
           <div className="flex-1 overflow-auto">
             {children}
