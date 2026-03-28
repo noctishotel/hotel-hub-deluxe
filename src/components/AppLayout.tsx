@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "@/hooks/useTheme";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -30,36 +31,63 @@ import {
   LogOut,
 } from "lucide-react";
 
-const mainNav = [
-  { to: "/panel", label: "Panel", icon: LayoutDashboard },
-  { to: "/checklists", label: "Checklists", icon: ClipboardList },
-  { to: "/incidencias", label: "Incidencias", icon: AlertTriangle },
-  { to: "/alarmas", label: "Alarmas", icon: Bell },
-  { to: "/agenda", label: "Agenda", icon: Calendar },
+type AppRole = "empleado" | "admin" | "super_admin";
+
+interface NavigationItem {
+  label: string;
+  path: string;
+  icon: typeof LayoutDashboard;
+  requiredRole?: AppRole;
+  group: "navegacion" | "gestion" | "super_admin";
+}
+
+const roleRank: Record<AppRole, number> = {
+  empleado: 0,
+  admin: 1,
+  super_admin: 2,
+};
+
+const navigationItems: NavigationItem[] = [
+  { label: "Panel", path: "/panel", icon: LayoutDashboard, group: "navegacion" },
+  { label: "Checklists", path: "/checklists", icon: ClipboardList, group: "navegacion" },
+  { label: "Incidencias", path: "/incidencias", icon: AlertTriangle, group: "navegacion" },
+  { label: "Alarmas", path: "/alarmas", icon: Bell, group: "navegacion" },
+  { label: "Agenda", path: "/agenda", icon: Calendar, group: "navegacion" },
+  { label: "Informes", path: "/informes", icon: BarChart3, requiredRole: "admin", group: "gestion" },
+  { label: "Equipo", path: "/equipo", icon: Users, requiredRole: "super_admin", group: "super_admin" },
+  { label: "Administración", path: "/administracion", icon: Settings, requiredRole: "super_admin", group: "super_admin" },
+  { label: "Hoteles", path: "/hoteles", icon: Hotel, requiredRole: "super_admin", group: "super_admin" },
+  { label: "Historial", path: "/historial", icon: History, requiredRole: "super_admin", group: "super_admin" },
 ];
 
-const adminNav = [
-  { to: "/informes", label: "Informes", icon: BarChart3 },
-];
+const groupLabels: Record<NavigationItem["group"], string> = {
+  navegacion: "Navegación",
+  gestion: "Gestión",
+  super_admin: "Super Admin",
+};
 
-const superAdminNav = [
-  { to: "/equipo", label: "Equipo", icon: Users },
-  { to: "/admin", label: "Administración", icon: Settings },
-  { to: "/hoteles", label: "Hoteles", icon: Hotel },
-  { to: "/historial-checklists", label: "Historial", icon: History },
-];
+const canAccess = (role: AppRole | null, requiredRole?: AppRole) => {
+  if (!requiredRole) return Boolean(role);
+  if (!role) return false;
+  return roleRank[role] >= roleRank[requiredRole];
+};
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { usuario, signOut, loading } = useAuth();
+  const { usuario, role, signOut, loading } = useAuth();
   useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const role = !loading ? usuario?.rol ?? null : null;
-  const isSuperAdmin = role === "super_admin";
-  const isAdmin = role === "admin" || isSuperAdmin;
-  const visibleMainNav = !loading && role ? mainNav : [];
-  const visibleAdminNav = isAdmin ? adminNav : [];
-  const visibleSuperAdminNav = isSuperAdmin ? superAdminNav : [];
+
+  const visibleItems = useMemo(
+    () => navigationItems.filter((item) => canAccess(role, item.requiredRole)),
+    [role]
+  );
+
+  const groupedItems = useMemo(() => ({
+    navegacion: visibleItems.filter((item) => item.group === "navegacion"),
+    gestion: visibleItems.filter((item) => item.group === "gestion"),
+    super_admin: visibleItems.filter((item) => item.group === "super_admin"),
+  }), [visibleItems]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -79,78 +107,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p className="text-xs text-sidebar-foreground/60">Gestión Hotelera</p>
           </SidebarHeader>
           <SidebarContent>
-            {visibleMainNav.length > 0 && (
-              <SidebarGroup>
-                <SidebarGroupLabel className="uppercase tracking-widest text-[10px] text-sidebar-foreground/40 font-semibold">
-                  Navegación
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {visibleMainNav.map((item) => (
-                      <SidebarMenuItem key={item.to}>
-                        <SidebarMenuButton
-                          onClick={() => navigate(item.to)}
-                          isActive={location.pathname === item.to}
-                          style={{ fontSize: "var(--sidebar-item-size)" }}
-                          className={location.pathname === item.to ? "bg-[hsl(var(--tab-active-bg))] text-[hsl(var(--tab-active-fg))]" : ""}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            )}
-            {visibleAdminNav.length > 0 && (
-              <SidebarGroup>
-                <SidebarGroupLabel className="uppercase tracking-widest text-[10px] text-sidebar-foreground/40 font-semibold">
-                  Gestión
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {visibleAdminNav.map((item) => (
-                      <SidebarMenuItem key={item.to}>
-                        <SidebarMenuButton
-                          onClick={() => navigate(item.to)}
-                          isActive={location.pathname === item.to}
-                          style={{ fontSize: "var(--sidebar-item-size)" }}
-                          className={location.pathname === item.to ? "bg-[hsl(var(--tab-active-bg))] text-[hsl(var(--tab-active-fg))]" : ""}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            )}
-            {visibleSuperAdminNav.length > 0 && (
-              <SidebarGroup>
-                <SidebarGroupLabel className="uppercase tracking-widest text-[10px] text-sidebar-foreground/40 font-semibold">
-                  Super Admin
-                </SidebarGroupLabel>
-                <SidebarGroupContent>
-                  <SidebarMenu>
-                    {visibleSuperAdminNav.map((item) => (
-                      <SidebarMenuItem key={item.to}>
-                        <SidebarMenuButton
-                          onClick={() => navigate(item.to)}
-                          isActive={location.pathname === item.to}
-                          style={{ fontSize: "var(--sidebar-item-size)" }}
-                          className={location.pathname === item.to ? "bg-[hsl(var(--tab-active-bg))] text-[hsl(var(--tab-active-fg))]" : ""}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.label}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            )}
+            {(["navegacion", "gestion", "super_admin"] as const).map((groupKey) => {
+              const items = groupedItems[groupKey];
+
+              if (items.length === 0) {
+                return null;
+              }
+
+              return (
+                <SidebarGroup key={groupKey}>
+                  <SidebarGroupLabel className="uppercase tracking-widest text-[10px] text-sidebar-foreground/40 font-semibold">
+                    {groupLabels[groupKey]}
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {items.map((item) => (
+                        <SidebarMenuItem key={item.path}>
+                          <SidebarMenuButton
+                            onClick={() => navigate(item.path)}
+                            isActive={location.pathname === item.path}
+                            style={{ fontSize: "var(--sidebar-item-size)" }}
+                            className={location.pathname === item.path ? "bg-[hsl(var(--tab-active-bg))] text-[hsl(var(--tab-active-fg))]" : ""}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              );
+            })}
           </SidebarContent>
           <SidebarFooter className="p-4 space-y-2">
             {!loading && role && (

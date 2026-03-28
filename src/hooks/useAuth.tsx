@@ -1,13 +1,16 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
+
+type AppRole = "empleado" | "admin" | "super_admin";
+type Departamento = "recepcion" | "limpieza" | "fyb" | "mantenimiento" | "administracion" | "direccion";
 
 interface Usuario {
   id: string;
   nombre: string;
   email: string;
-  rol: "empleado" | "admin" | "super_admin";
-  departamento: "recepcion" | "limpieza" | "fyb" | "mantenimiento" | "administracion" | "direccion";
+  rol: AppRole;
+  departamento: Departamento;
   hotel_id: string;
   activo: boolean;
   auth_id: string | null;
@@ -17,10 +20,10 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   usuario: Usuario | null;
+  role: AppRole | null;
   loading: boolean;
   hotelId: string | null;
   signOut: () => Promise<void>;
-  refreshUsuario: (authId?: string) => Promise<Usuario | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,15 +38,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const lastFetchId = useRef(0);
+  const activeRequestRef = useRef(0);
 
-  const fetchUsuario = useCallback(async (authId: string, options?: { silent?: boolean }) => {
-    const currentFetchId = ++lastFetchId.current;
+  const resetAuthState = useCallback(() => {
+    setUsuario(null);
+    setRole(null);
+  }, []);
 
-    if (!options?.silent) {
-      setLoading(true);
-    }
+  const fetchCurrentUserProfile = useCallback(async (authId: string) => {
+    const requestId = ++activeRequestRef.current;
+    setLoading(true);
 
     try {
       const { data, error } = await supabase
@@ -57,75 +63,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
 
-      if (currentFetchId !== lastFetchId.current) return null;
+      if (requestId !== activeRequestRef.current) return;
 
-      const nextUsuario = data as Usuario | null;
+      const nextUsuario = (data as Usuario | null) ?? null;
       setUsuario(nextUsuario);
-      return nextUsuario;
+      setRole(nextUsuario?.rol ?? null);
     } catch (err) {
       console.error("Error fetching usuario:", err);
 
-      if (currentFetchId !== lastFetchId.current) return null;
+      if (requestId !== activeRequestRef.current) return;
 
-      setUsuario(null);
-      return null;
+      resetAuthState();
     } finally {
-      if (!options?.silent && currentFetchId === lastFetchId.current) {
+      if (requestId === activeRequestRef.current) {
         setLoading(false);
       }
     }
-  }, []);
+  }, [resetAuthState]);
+
+  const syncAuthState = useCallback(async (nextSession: Session | null) => {
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+
+    if (!nextSession?.user?.id) {
+      activeRequestRef.current += 1;
+      resetAuthState();
+      setLoading(false);
+      return;
+    }
+
+    await fetchCurrentUserProfile(nextSession.user.id);
+  }, [fetchCurrentUserProfile, resetAuthState]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setUsuario(null);
-      if (s?.user) {
-        setLoading(true);
-        void fetchUsuario(s.user.id);
-      } else {
-        setLoading(false);
-      }
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      void syncAuthState(initialSession);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setUsuario(null);
-      if (s?.user) {
-        setLoading(true);
-        void fetchUsuario(s.user.id);
-      }
-      else {
-        setLoading(false);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void syncAuthState(nextSession);
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchUsuario]);
-
-  const refreshUsuario = useCallback(async (authId?: string) => {
-    const targetAuthId = authId ?? session?.user?.id ?? null;
-
-    if (!targetAuthId) {
-      setUsuario(null);
-      return null;
-    }
-
-    return fetchUsuario(targetAuthId, { silent: true });
-  }, [fetchUsuario, session?.user?.id]);
+  }, [syncAuthState]);
 
   const signOut = useCallback(async () => {
-    lastFetchId.current += 1;
+    activeRequestRef.current += 1;
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
-    setUsuario(null);
-  }, []);
+    resetAuthState();
+    setLoading(false);
+  }, [resetAuthState]);
+
+  const value = useMemo(() => ({
+    session,
+    user,
+    usuario,
+    role,
+    loading,
+    hotelId: usuario?.hotel_id ?? null,
+    signOut,
+  }), [loading, role, session, signOut, user, usuario]);
 
   return (
-    <AuthContext.Provider value={{ session, user, usuario, loading, hotelId: usuario?.hotel_id ?? null, signOut, refreshUsuario }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

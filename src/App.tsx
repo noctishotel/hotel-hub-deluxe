@@ -22,10 +22,6 @@ import NotFoundPage from "@/pages/NotFoundPage";
 
 const queryClient = new QueryClient();
 
-function AuthGate({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -41,14 +37,14 @@ const App = () => (
             <Route path="/checklists" element={<ProtectedRoute><AppLayout><ChecklistsPage /></AppLayout></ProtectedRoute>} />
             <Route path="/incidencias" element={<ProtectedRoute><AppLayout><IncidenciasPage /></AppLayout></ProtectedRoute>} />
             <Route path="/alarmas" element={<ProtectedRoute><AppLayout><AlarmasPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/equipo" element={<ProtectedRoute superOnly><AppLayout><EquipoPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/informes" element={<ProtectedRoute adminOnly><AppLayout><InformesPage /></AppLayout></ProtectedRoute>} />
             <Route path="/agenda" element={<ProtectedRoute><AppLayout><AgendaPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute superOnly><AppLayout><AdminPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/administracion" element={<ProtectedRoute superOnly><Navigate to="/admin" replace /></ProtectedRoute>} />
-            <Route path="/hoteles" element={<ProtectedRoute superOnly><AppLayout><HotelesPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/historial-checklists" element={<ProtectedRoute superOnly><AppLayout><HistorialChecklistsPage /></AppLayout></ProtectedRoute>} />
-            <Route path="/historial" element={<ProtectedRoute superOnly><Navigate to="/historial-checklists" replace /></ProtectedRoute>} />
+            <Route path="/informes" element={<ProtectedRoute requiredRole="admin"><AppLayout><InformesPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/equipo" element={<ProtectedRoute requiredRole="super_admin"><AppLayout><EquipoPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/hoteles" element={<ProtectedRoute requiredRole="super_admin"><AppLayout><HotelesPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/administracion" element={<ProtectedRoute requiredRole="super_admin"><AppLayout><AdminPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/historial" element={<ProtectedRoute requiredRole="super_admin"><AppLayout><HistorialChecklistsPage /></AppLayout></ProtectedRoute>} />
+            <Route path="/admin" element={<Navigate to="/administracion" replace />} />
+            <Route path="/historial-checklists" element={<Navigate to="/historial" replace />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </AuthProvider>
