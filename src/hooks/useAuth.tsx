@@ -37,9 +37,18 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // Try to restore cached profile for instant render
+  const cachedProfile = (() => {
+    try {
+      const raw = sessionStorage.getItem("noctis_user_profile");
+      return raw ? JSON.parse(raw) as Usuario : null;
+    } catch { return null; }
+  })();
+
+  const [usuario, setUsuarioState] = useState<Usuario | null>(cachedProfile);
+  const [role, setRole] = useState<AppRole | null>(cachedProfile?.rol ?? null);
+  const [loading, setLoading] = useState(!cachedProfile);
   const activeRequestRef = useRef(0);
 
   const resetAuthState = useCallback(() => {
