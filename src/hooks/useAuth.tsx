@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -38,36 +38,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const lastFetchId = useRef(0);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setUsuario(null);
-      if (s?.user) {
-        setLoading(true);
-        fetchUsuario(s.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      setUsuario(null);
-      if (s?.user) {
-        setLoading(true);
-        fetchUsuario(s.user.id);
-      }
-      else {
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchUsuario = async (authId: string, options?: { silent?: boolean }) => {
+  const fetchUsuario = useCallback(async (authId: string, options?: { silent?: boolean }) => {
     const currentFetchId = ++lastFetchId.current;
 
     if (!options?.silent) {
@@ -103,9 +74,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     }
-  };
+  }, []);
 
-  const refreshUsuario = async (authId?: string) => {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      setUsuario(null);
+      if (s?.user) {
+        setLoading(true);
+        void fetchUsuario(s.user.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      setSession(s);
+      setUser(s?.user ?? null);
+      setUsuario(null);
+      if (s?.user) {
+        setLoading(true);
+        void fetchUsuario(s.user.id);
+      }
+      else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchUsuario]);
+
+  const refreshUsuario = useCallback(async (authId?: string) => {
     const targetAuthId = authId ?? session?.user?.id ?? null;
 
     if (!targetAuthId) {
@@ -114,15 +114,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     return fetchUsuario(targetAuthId, { silent: true });
-  };
+  }, [fetchUsuario, session?.user?.id]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     lastFetchId.current += 1;
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
     setUsuario(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ session, user, usuario, loading, hotelId: usuario?.hotel_id ?? null, signOut, refreshUsuario }}>

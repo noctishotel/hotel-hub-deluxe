@@ -39,13 +39,13 @@ interface Usuario {
 }
 
 export default function HistorialChecklistsPage() {
-  const { hotelId, usuario, loading } = useAuth();
+  const { hotelId, usuario, loading: authLoading } = useAuth();
   const isSuperAdmin = usuario?.rol === "super_admin";
   const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [tareas, setTareas] = useState<Record<string, Tarea>>({});
   const [usuarios, setUsuarios] = useState<Record<string, Usuario>>({});
-  const [loading, setLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(true);
   const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
   const [filterDept, setFilterDept] = useState("all");
 
@@ -53,7 +53,7 @@ export default function HistorialChecklistsPage() {
     if (hotelId && isSuperAdmin) loadData();
   }, [hotelId, filterDate, isSuperAdmin]);
 
-  if (loading) {
+  if (authLoading || pageLoading) {
     return (
       <div className="flex items-center justify-center h-svh">
         <p className="text-muted-foreground">Cargando...</p>
@@ -66,7 +66,7 @@ export default function HistorialChecklistsPage() {
   }
 
   const loadData = async () => {
-    setLoading(true);
+    setPageLoading(true);
     try {
       const [regRes, tarRes, usrRes] = await Promise.all([
         supabase.from("registros_checklist").select("*").eq("hotel_id", hotelId!).eq("fecha", filterDate).order("completado_a", { ascending: false }),
@@ -86,7 +86,7 @@ export default function HistorialChecklistsPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setPageLoading(false);
     }
   };
 
@@ -125,7 +125,7 @@ export default function HistorialChecklistsPage() {
         </Select>
       </div>
 
-      {loading ? (
+      {pageLoading ? (
         <div className="text-center py-8 text-muted-foreground text-sm">Cargando...</div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground text-sm">Sin registros en este periodo</div>
