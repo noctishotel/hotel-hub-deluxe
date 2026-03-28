@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Clock, Eye, ChevronLeft, ChevronRight, StickyNote } from "lucide-react";
+import { Clock, Eye, ChevronLeft, ChevronRight, StickyNote, Calendar } from "lucide-react";
 
 const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
@@ -17,17 +17,6 @@ const ALL_DEPARTAMENTOS = [
   { value: "administracion", label: "Administración" },
   { value: "direccion", label: "Dirección" },
 ];
-
-interface AgendaItem {
-  id: string;
-  fecha: string;
-  nota: string | null;
-  usuario_id: string | null;
-  hotel_id: string;
-  departamento: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 interface StructuredNota {
   _structured: true;
@@ -60,7 +49,7 @@ function MiniCalendar({ selectedDate, onSelectDate }: { selectedDate: string; on
 
   const daysInMonth = getDaysInMonth(viewYear, viewMonth);
   const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay();
-  const adjustedFirst = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Monday start
+  const adjustedFirst = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
   const todayStr = new Date().toISOString().split("T")[0];
 
   const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
@@ -138,11 +127,7 @@ export default function AgendaPage() {
     if (usuario) setSelectedDept(usuario.departamento);
   }, [usuario]);
 
-  useEffect(() => {
-    if (hotelId && selectedDept) loadAgenda();
-  }, [hotelId, selectedDept, selectedDate]);
-
-  const loadAgenda = async () => {
+  const loadAgenda = useCallback(async () => {
     if (!hotelId || !selectedDept) return;
     setLoading(true);
     try {
@@ -174,7 +159,11 @@ export default function AgendaPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [hotelId, selectedDept, selectedDate]);
+
+  useEffect(() => {
+    if (hotelId && selectedDept) loadAgenda();
+  }, [hotelId, selectedDept, selectedDate, loadAgenda]);
 
   const buildNota = useCallback((): string => {
     const data: StructuredNota = { _structured: true, notas, citas };
@@ -221,9 +210,6 @@ export default function AgendaPage() {
   const deptLabel = DEPARTAMENTOS.find((d) => d.value === selectedDept)?.label ?? selectedDept;
   const isReadOnly = isSuperAdmin && selectedDept !== usuario?.departamento;
 
-  if (loading)
-    return <div className="p-6 text-center text-muted-foreground">Cargando...</div>;
-
   return (
     <div className="p-3 md:p-6 space-y-3 animate-fade-in max-w-lg mx-auto">
       <div className="flex items-center justify-between">
@@ -252,62 +238,72 @@ export default function AgendaPage() {
         </Card>
       )}
 
-      {/* Monthly Calendar */}
-      <Card className="bg-card/60 backdrop-blur-sm border-border/50">
-        <CardContent className="p-3">
-          <MiniCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-        </CardContent>
-      </Card>
-
-      {/* Agenda por horas */}
-      <Card className="bg-card/60 backdrop-blur-sm border-border/50">
-        <CardContent className="p-3 space-y-1.5">
-          <div className="flex items-center gap-2 text-sm font-medium mb-2">
-            <Clock className="w-4 h-4 text-primary" />
-            Agenda por horas
-          </div>
-          <div className="space-y-1 max-h-[50vh] overflow-y-auto">
-            {HOURS.map((hour) => (
-              <div key={hour} className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground w-11 shrink-0 font-mono">
-                  {hour}
-                </span>
-                <Input
-                  className="h-8 text-sm"
-                  placeholder="—"
-                  value={citas[hour] ?? ""}
-                  onChange={(e) => updateCita(hour, e.target.value)}
-                  readOnly={isReadOnly}
-                />
+      {loading ? (
+        <div className="text-center py-8 text-muted-foreground text-sm">Cargando...</div>
+      ) : (
+        <>
+          {/* 1st — Notas */}
+          <Card className="bg-card/60 backdrop-blur-sm border-border/50">
+            <CardContent className="p-3 space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <StickyNote className="w-4 h-4 text-primary" />
+                Notas
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <Textarea
+                placeholder="Escribe notas para este día..."
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={4}
+                className="text-sm"
+                readOnly={isReadOnly}
+              />
+            </CardContent>
+          </Card>
 
-      {/* Notas */}
-      <Card className="bg-card/60 backdrop-blur-sm border-border/50">
-        <CardContent className="p-3 space-y-2">
-          <div className="flex items-center gap-2 text-sm font-medium">
-            <StickyNote className="w-4 h-4 text-primary" />
-            Notas
-          </div>
-          <Textarea
-            placeholder="Escribe notas para este día..."
-            value={notas}
-            onChange={(e) => setNotas(e.target.value)}
-            rows={4}
-            className="text-sm"
-            readOnly={isReadOnly}
-          />
-        </CardContent>
-      </Card>
+          {/* 2nd — Agenda por horas */}
+          <Card className="bg-card/60 backdrop-blur-sm border-border/50">
+            <CardContent className="p-3 space-y-1.5">
+              <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                <Clock className="w-4 h-4 text-primary" />
+                Agenda por horas
+              </div>
+              <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+                {HOURS.map((hour) => (
+                  <div key={hour} className="flex items-center gap-2">
+                    <span className="text-[11px] text-muted-foreground w-11 shrink-0 font-mono">
+                      {hour}
+                    </span>
+                    <Input
+                      className="h-8 text-sm"
+                      placeholder="—"
+                      value={citas[hour] ?? ""}
+                      onChange={(e) => updateCita(hour, e.target.value)}
+                      readOnly={isReadOnly}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Guardar */}
-      {!isReadOnly && (
-        <Button onClick={saveNota} size="sm" className="w-full">
-          Guardar agenda
-        </Button>
+          {/* 3rd — Calendario mensual */}
+          <Card className="bg-card/60 backdrop-blur-sm border-border/50">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 text-sm font-medium mb-2">
+                <Calendar className="w-4 h-4 text-primary" />
+                Calendario mensual
+              </div>
+              <MiniCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+            </CardContent>
+          </Card>
+
+          {/* Guardar */}
+          {!isReadOnly && (
+            <Button onClick={saveNota} size="sm" className="w-full">
+              Guardar agenda
+            </Button>
+          )}
+        </>
       )}
     </div>
   );
