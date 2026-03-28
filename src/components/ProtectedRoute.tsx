@@ -32,7 +32,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     );
   }
 
-  if (!session || !usuario) {
+  if (!session) {
     return <Navigate to="/login" replace />;
   }
 
