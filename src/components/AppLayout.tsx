@@ -53,7 +53,7 @@ const navigationItems: NavigationItem[] = [
   { label: "Incidencias", path: "/incidencias", icon: AlertTriangle, group: "navegacion" },
   { label: "Alarmas", path: "/alarmas", icon: Bell, group: "navegacion" },
   { label: "Agenda", path: "/agenda", icon: Calendar, group: "navegacion" },
-  { label: "Informes", path: "/informes", icon: BarChart3, requiredRole: "admin", group: "gestion" },
+  { label: "Informes", path: "/informes", icon: BarChart3, requiredRole: "super_admin", group: "super_admin" },
   { label: "Equipo", path: "/equipo", icon: Users, requiredRole: "super_admin", group: "super_admin" },
   { label: "Administración", path: "/administracion", icon: Settings, requiredRole: "super_admin", group: "super_admin" },
   { label: "Hoteles", path: "/hoteles", icon: Hotel, requiredRole: "super_admin", group: "super_admin" },
