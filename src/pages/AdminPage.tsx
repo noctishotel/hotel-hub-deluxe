@@ -16,6 +16,13 @@ import { Plus, Trash2, Settings, Palette, Type } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
+const FONT_OPTIONS = [
+  "Inter", "Roboto", "Open Sans", "Lato", "Montserrat", "Poppins", "Nunito",
+  "Raleway", "Work Sans", "DM Sans", "Outfit", "Source Sans 3", "Cabin",
+  "Cormorant Garamond", "Playfair Display", "DM Serif Display", "Libre Baskerville",
+  "Merriweather", "Lora", "Crimson Text", "EB Garamond", "Bitter",
+];
+
 const DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
   { value: "limpieza", label: "Limpieza" },
