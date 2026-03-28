@@ -37,10 +37,27 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [role, setRole] = useState<AppRole | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // Try to restore cached profile for instant render
+  const cachedProfile = (() => {
+    try {
+      const raw = sessionStorage.getItem("noctis_user_profile");
+      return raw ? JSON.parse(raw) as Usuario : null;
+    } catch { return null; }
+  })();
+
+  const [usuario, setUsuarioState] = useState<Usuario | null>(cachedProfile);
+  const [role, setRole] = useState<AppRole | null>(cachedProfile?.rol ?? null);
+  const [loading, setLoading] = useState(!cachedProfile);
   const activeRequestRef = useRef(0);
+
+  const setUsuario = useCallback((u: Usuario | null) => {
+    setUsuarioState(u);
+    try {
+      if (u) sessionStorage.setItem("noctis_user_profile", JSON.stringify(u));
+      else sessionStorage.removeItem("noctis_user_profile");
+    } catch {}
+  }, []);
 
   const resetAuthState = useCallback(() => {
     setUsuario(null);
@@ -114,6 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     resetAuthState();
     setLoading(false);
+    try { sessionStorage.removeItem("noctis_user_profile"); sessionStorage.removeItem("noctis_theme_cache"); } catch {}
   }, [resetAuthState]);
 
   const value = useMemo(() => ({
