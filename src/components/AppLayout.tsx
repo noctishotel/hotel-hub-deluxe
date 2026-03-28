@@ -30,6 +30,7 @@ import {
   History,
   LogOut,
 } from "lucide-react";
+import noctisLogo from "@/assets/noctis-logo.png";
 
 type AppRole = "empleado" | "admin" | "super_admin";
 
