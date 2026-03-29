@@ -21,8 +21,9 @@ const hasRequiredRole = (currentRole: AppRole | null, requiredRole?: AppRole) =>
 };
 
 const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { session, role, loading } = useAuth();
+  const { session, role, usuario, loading } = useAuth();
   useLocation();
+  const effectiveRole = loading ? null : (usuario?.rol ?? role);
 
   if (loading) {
     return (
@@ -36,7 +37,7 @@ const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!hasRequiredRole(role, requiredRole)) {
+  if (!hasRequiredRole(effectiveRole, requiredRole)) {
     return <Navigate to="/panel" replace />;
   }
 

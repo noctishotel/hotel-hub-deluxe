@@ -78,10 +78,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const effectiveRole = loading ? null : (usuario?.rol ?? role);
 
   const visibleItems = useMemo(
-    () => navigationItems.filter((item) => canAccess(role, item.requiredRole)),
-    [role]
+    () => navigationItems.filter((item) => canAccess(effectiveRole, item.requiredRole)),
+    [effectiveRole]
   );
 
   const groupedItems = useMemo(() => ({
@@ -96,7 +97,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <SidebarProvider key={role ?? "guest"}>
+    <SidebarProvider key={effectiveRole ?? "guest"}>
       <div className="flex min-h-svh w-full">
         <Sidebar>
           <SidebarHeader className="p-4">

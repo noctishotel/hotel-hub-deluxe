@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Download, Share2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Navigate } from "react-router-dom";
 
 const ALL_DEPARTAMENTOS = [
   { value: "recepcion", label: "Recepción" },
@@ -57,7 +58,7 @@ interface TareaRow {
 }
 
 export default function InformesPage() {
-  const { usuario, hotelId } = useAuth();
+  const { usuario, hotelId, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [incidencias, setIncidencias] = useState<IncidenciaRow[]>([]);
   const [registros, setRegistros] = useState<RegistroRow[]>([]);
@@ -70,8 +71,13 @@ export default function InformesPage() {
   const DEPARTAMENTOS = ALL_DEPARTAMENTOS.filter(d => d.value !== "administracion" || isSuperAdmin);
 
   useEffect(() => {
-    if (hotelId) loadData();
-  }, [hotelId]);
+    if (authLoading || !hotelId || !isSuperAdmin) {
+      setLoading(false);
+      return;
+    }
+
+    void loadData();
+  }, [authLoading, hotelId, isSuperAdmin]);
 
   const loadData = async () => {
     try {
@@ -202,6 +208,8 @@ export default function InformesPage() {
     shareWhatsApp(text);
   };
 
+  if (authLoading) return <div className="p-6 text-center text-muted-foreground">Cargando permisos...</div>;
+  if (!isSuperAdmin) return <Navigate to="/panel" replace />;
   if (loading) return <div className="p-6 text-center text-muted-foreground">Cargando informes...</div>;
 
   return (
