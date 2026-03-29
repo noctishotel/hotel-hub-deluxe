@@ -27,6 +27,16 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const PROFILE_CACHE_KEY = "noctis_user_profile";
+
+const readCachedProfile = (): Usuario | null => {
+  try {
+    const raw = sessionStorage.getItem(PROFILE_CACHE_KEY);
+    return raw ? JSON.parse(raw) as Usuario : null;
+  } catch {
+    return null;
+  }
+};
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
@@ -37,25 +47,18 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-
-  // Try to restore cached profile for instant render
-  const cachedProfile = (() => {
-    try {
-      const raw = sessionStorage.getItem("noctis_user_profile");
-      return raw ? JSON.parse(raw) as Usuario : null;
-    } catch { return null; }
-  })();
-
-  const [usuario, setUsuarioState] = useState<Usuario | null>(cachedProfile);
-  const [role, setRole] = useState<AppRole | null>(cachedProfile?.rol ?? null);
-  const [loading, setLoading] = useState(!cachedProfile);
+  const [usuario, setUsuarioState] = useState<Usuario | null>(null);
+  const [role, setRole] = useState<AppRole | null>(null);
+  const [loading, setLoading] = useState(true);
   const activeRequestRef = useRef(0);
+  const profileAuthIdRef = useRef<string | null>(null);
 
   const setUsuario = useCallback((u: Usuario | null) => {
+    profileAuthIdRef.current = u?.auth_id ?? null;
     setUsuarioState(u);
     try {
-      if (u) sessionStorage.setItem("noctis_user_profile", JSON.stringify(u));
-      else sessionStorage.removeItem("noctis_user_profile");
+      if (u) sessionStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(u));
+      else sessionStorage.removeItem(PROFILE_CACHE_KEY);
     } catch {}
   }, []);
 
@@ -105,12 +108,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!nextSession?.user?.id) {
       activeRequestRef.current += 1;
       resetAuthState();
+      profileAuthIdRef.current = null;
       setLoading(false);
       return;
     }
 
-    await fetchCurrentUserProfile(nextSession.user.id);
-  }, [fetchCurrentUserProfile, resetAuthState]);
+    const nextAuthId = nextSession.user.id;
+    const cachedProfile = readCachedProfile();
+
+    if (cachedProfile?.auth_id === nextAuthId) {
+      setUsuario(cachedProfile);
+    }
+
+    if (profileAuthIdRef.current === nextAuthId && role !== null) {
+      setLoading(false);
+      return;
+    }
+
+    await fetchCurrentUserProfile(nextAuthId);
+  }, [fetchCurrentUserProfile, resetAuthState, role, setUsuario]);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
@@ -130,8 +146,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(null);
     setUser(null);
     resetAuthState();
+    profileAuthIdRef.current = null;
     setLoading(false);
-    try { sessionStorage.removeItem("noctis_user_profile"); sessionStorage.removeItem("noctis_theme_cache"); } catch {}
+    try { sessionStorage.removeItem(PROFILE_CACHE_KEY); sessionStorage.removeItem("noctis_theme_cache"); } catch {}
   }, [resetAuthState]);
 
   const value = useMemo(() => ({
